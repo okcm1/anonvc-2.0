@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08090b">
+<title>AnonVC 2.0 — Anonymous Virgins Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="scanlines"></div>
+<header class="topbar">
+  <a class="brand" href="#home"><img src="/assets/anonvc-logo.svg" alt="AnonVC"><span>ANONVC <b>2.0</b></span></a>
+  <nav>
+    <a href="#home">HOME</a><a href="#roster">ROSTER</a><a href="#matches">MATCHES</a><a href="#stats">STATS</a><a href="#faceit">FACEIT</a><a href="#about">ABOUT</a>
+  </nav>
+  <a class="faceit-btn" href="https://www.faceit.com/ru/teams/a15fd8cf-bda5-4456-9445-86688331562e" target="_blank">FACEIT ↗</a>
+</header>
+
+<main>
+<section id="home" class="dashboard page">
+  <div class="operators panel">
+    <div class="panel-title"><span>OPERATORS</span><i>05 ACTIVE</i></div>
+    <div id="operatorList" class="operator-list"></div>
+  </div>
+
+  <div class="match-center panel">
+    <div class="panel-title"><span>MATCH CENTER</span><i id="liveState">LIVE FEED</i></div>
+    <div class="match-head"><div><small>ANONVC</small><strong id="heroScore">— : —</strong></div><div class="versus">VS</div><div class="right"><small id="heroOpponent">WAITING</small><strong>—</strong></div></div>
+    <div class="mapline"><span id="heroMap">NO MATCH LOADED</span><span id="heroDate">—</span></div>
+    <div class="rounds" id="rounds"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="match-note">FACEIT DATA LINK <b id="apiState">OFFLINE</b></div>
+  </div>
+
+  <aside class="side">
+    <div class="panel statbox"><div class="panel-title"><span>TEAM STATS</span><i>CS2</i></div><div class="big-stat"><b id="winRate">—</b><span>WIN RATE</span></div><div class="mini-grid"><div><b id="wins">—</b><span>WINS</span></div><div><b id="losses">—</b><span>LOSSES</span></div><div><b id="games">—</b><span>GAMES</span></div></div></div>
+    <div class="panel faceitbox" id="faceit"><div class="panel-title"><span>FACEIT</span><i>TEAM</i></div><b>ANONYMOUS<br>VIRGINS CLUB</b><small>CS2 · RUSSIA</small><a href="https://www.faceit.com/ru/teams/a15fd8cf-bda5-4456-9445-86688331562e" target="_blank">OPEN TEAM ↗</a></div>
+    <div class="panel next"><div class="panel-title"><span>NEXT MATCH</span><i>STATUS</i></div><strong id="nextOpponent">TBD</strong><span id="nextMeta">Waiting for FACEIT data</span></div>
+  </aside>
+
+  <div class="recent panel" id="matches"><div class="panel-title"><span>RECENT MATCHES</span><a href="#matches-page">OPEN ALL ↗</a></div><div id="recentList" class="match-list"></div></div>
+  <div class="form panel"><div class="panel-title"><span>TEAM FORM</span><i>LAST 10</i></div><div id="formDots" class="form-dots"></div><div class="form-caption">RECENT PERFORMANCE</div></div>
+</section>
+
+<section id="roster" class="section page">
+  <div class="section-head"><div><small>ANONVC 2.0 / OPERATORS</small><h1>ROSTER</h1></div><span>05 PLAYERS</span></div>
+  <div id="rosterGrid" class="roster-grid"></div>
+</section>
+
+<section id="matches-page" class="section page">
+  <div class="section-head"><div><small>ANONVC 2.0 / FACEIT FEED</small><h1>MATCHES</h1></div><span>LIVE API</span></div>
+  <div id="allMatches" class="all-matches"></div>
+</section>
+
+<section id="stats" class="section page">
+  <div class="section-head"><div><small>ANONVC 2.0 / PERFORMANCE</small><h1>STATS</h1></div><span>CS2</span></div>
+  <div class="stats-grid"><div class="panel"><div class="panel-title"><span>TEAM ID</span><i>FACEIT</i></div><strong class="mono">a15fd8cf-bda5-4456-9445-86688331562e</strong></div><div class="panel"><div class="panel-title"><span>DATA PIPE</span><i>SERVER SIDE</i></div><strong id="statsStatus">CONNECTING...</strong></div></div>
+</section>
+
+<section id="about" class="section page">
+  <div class="section-head"><div><small>ANONVC 2.0 / FILE</small><h1>ABOUT</h1></div><span>NO FACES. NO NOISE.</span></div>
+  <div class="about-grid"><div class="panel"><p class="quote">ANONYMOUS VIRGINS CLUB</p><p>Underground CS2 competitive project. Tactical identity, hard rounds and zero unnecessary noise.</p></div><div class="panel"><p class="mono">SYSTEM // ANONVC_2.0</p><p>Dashboard prepared for real FACEIT data. API credentials stay server-side and are never shipped to the browser.</p></div></div>
+</section>
+</main>
+
+<footer>ANONVC 2.0 // NO FACES. NO NOISE. <span>© 2026</span></footer>
+<script src="/app.js"></script>
+</body>
+</html>
