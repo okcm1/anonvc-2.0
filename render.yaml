@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: anonvc-2-0
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: FACEIT_TEAM_ID
+        value: a15fd8cf-bda5-4456-9445-86688331562e
+      - key: FACEIT_API_KEY
+        sync: false
