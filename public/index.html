@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css?v=20261004-design22">
 <link rel="stylesheet" href="/overhaul.css?v=20261004-3">
+<link rel="stylesheet" href="/features.css?v=20261004-3-1">
 </head>
 <body>
 <div class="scanlines"></div>
@@ -47,6 +48,7 @@
 
 <section id="roster" class="section page">
   <div class="section-head"><div><small>ANONVC 2.0 / OPERATORS</small><h1>ROSTER</h1></div><span>05 PLAYERS</span></div>
+  <div class="roster-tools"><input id="rosterSearch" class="ui-input" placeholder="SEARCH OPERATOR..." autocomplete="off"><select id="rosterSort" class="ui-select"><option value="default">SORT: DEFAULT</option><option value="elo">SORT: ELO</option><option value="kd">SORT: K/D</option><option value="win">SORT: WINRATE</option></select><span id="rosterCounter" class="ui-counter">05 / 05 OPERATORS</span></div>
   <div id="rosterGrid" class="roster-grid"></div>
 </section>
 
@@ -56,7 +58,7 @@
 <button class="match-tab active" data-filter="TEAM">TEAM · 5/5</button>
 <button class="match-tab" data-filter="STACK">STACK · 2–4/5</button>
 <button class="match-tab" data-filter="SOLO">SOLO · 1/5</button>
-</div><span id="matchCount">0 MATCHES</span></div>
+</div><div class="match-tools-extra"><input id="matchSearch" class="ui-input" placeholder="SEARCH OPPONENT / MAP / PLAYER..." autocomplete="off"></div><span id="matchCount">0 MATCHES</span></div>
   <div id="allMatches" class="all-matches"></div>
 </section>
 
@@ -84,7 +86,7 @@
   </div>
   <div class="panel stats-id">
     <div class="panel-title"><span>TEAM ID</span><i>FACEIT</i></div>
-    <strong class="mono">a15fd8cf-bda5-4456-9445-86688331562e</strong>
+    <strong class="mono">a15fd8cf-bda5-4456-9445-86688331562e</strong><button id="copyTeamId" class="profile-actions" type="button" style="margin:15px 0 0;padding:0 18px;height:38px">COPY TEAM ID</button>
   </div>
 </section>
 
@@ -95,6 +97,8 @@
 </main>
 
 <footer>ANONVC 2.0 // NO FACES. NO NOISE. <span>© 2026</span></footer>
+<div id="profileModal" class="profile-modal" aria-hidden="true"></div>
 <script src="/app.js?v=20261004-rosterlayout"></script>
+<script src="/features.js?v=20261004-3-1"></script>
 </body>
 </html>
