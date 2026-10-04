@@ -203,3 +203,49 @@
   .profile-grid{grid-template-columns:repeat(2,1fr)!important}
   .profile-actions{padding:16px 22px!important;flex-wrap:wrap}
 }
+
+/* ANONVC 3.3 — MATCHUP / OPPONENT INTELLIGENCE */
+.match-row.match-row-detail{
+  grid-template-columns:72px minmax(180px,.9fr) minmax(420px,1.5fr) 82px!important;
+  min-height:104px!important;
+  padding:12px 16px!important;
+}
+.match-scoreboard{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(135px,1fr) minmax(190px,1.25fr);
+  align-items:center;
+  gap:18px;
+  padding:0 12px;
+}
+.score-center{text-align:center;border-left:1px solid #292e35;border-right:1px solid #292e35;padding:8px 16px;min-height:70px;display:flex;flex-direction:column;justify-content:center}
+.score-center small{display:block;color:#656c75!important;font-size:7px!important;letter-spacing:1.5px!important;margin:0 0 5px!important}
+.score-center b{font:800 34px/1 "Barlow Condensed";letter-spacing:.5px;color:#f2f2f2}
+.score-center .score-winner{display:block!important;margin-top:6px;font-size:7px!important;letter-spacing:1px;font-weight:900}
+.score-winner.win{color:#69d38a!important;background:none!important}
+.score-winner.loss{color:#ef4b4b!important;background:none!important}
+.score-winner.unknown{color:#777e87!important;background:none!important}
+.opponent-side{min-width:0;padding-left:4px}
+.opponent-side>strong{display:block;font:800 24px/1 "Barlow Condensed";color:#f1f2f3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.opponent-label{display:block;color:#666d76;font:800 7px Inter,sans-serif;letter-spacing:1.5px;margin-top:5px}
+.opponent-roster{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;max-height:36px;overflow:hidden}
+.opponent-roster .roster-label{width:100%;color:#505760;font:800 6px Inter,sans-serif;letter-spacing:1.2px}
+.opponent-roster span:not(.roster-label){display:inline-flex;align-items:center;min-height:18px;padding:2px 6px;border:1px solid #292e35;background:#0d1014;color:#9da3aa;font:700 7px Inter,sans-serif;letter-spacing:.2px}
+.match-main-info{min-width:0}
+.match-main-info>strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.match-faceit-link{justify-self:end!important;align-self:center!important;text-align:center}
+@media(max-width:1050px){
+  .match-row.match-row-detail{grid-template-columns:62px minmax(150px,.8fr) minmax(330px,1.4fr) 72px!important}
+  .match-scoreboard{grid-template-columns:120px 1fr;gap:10px}
+  .opponent-side>strong{font-size:21px}
+}
+@media(max-width:720px){
+  .match-row.match-row-detail{grid-template-columns:55px 1fr!important;grid-template-rows:auto auto!important;gap:8px 10px!important;padding:12px!important}
+  .match-main-info{grid-column:2}
+  .match-scoreboard{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1.2fr;padding:10px 0 0;border-top:1px solid #292e35}
+  .score-center{border-left:0;padding:6px 10px}
+  .score-center b{font-size:30px}
+  .opponent-side{padding-left:10px;border-left:1px solid #292e35}
+  .opponent-side>strong{font-size:20px}
+  .match-faceit-link{display:none!important}
+}
