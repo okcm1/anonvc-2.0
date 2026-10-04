@@ -162,6 +162,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
       clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
+      avgKills:killsCount?Math.round(killsSum/killsCount*10)/10:null,
       clutchAttempts,
       clutchWins
     };
