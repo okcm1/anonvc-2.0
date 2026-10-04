@@ -487,3 +487,28 @@ footer{
 .form-dots span.win,.stats-form span.win{background:rgba(105,211,138,.14);color:#69d38a;border:1px solid rgba(105,211,138,.38)}
 .form-dots span.loss,.stats-form span.loss{background:rgba(239,75,75,.14);color:#ef4b4b;border:1px solid rgba(239,75,75,.38)}
 .form-dots span.unknown,.stats-form span.unknown{background:rgba(255,255,255,.05);color:#777e87;border:1px solid #30343a}
+
+
+/* ANONVC 2.4 — match result spacing + stronger MVP */
+.match-row.match-row-detail{
+  grid-template-columns:75px minmax(0,1fr) 110px 90px;
+  min-height:78px;
+}
+.match-row .result{
+  min-width:62px;
+}
+.match-row .mvp{
+  font-size:9px;
+  margin-top:6px;
+  letter-spacing:.2px;
+}
+.match-row .mvp b{
+  font-size:10px;
+  color:#f0f2f4;
+}
+@media(max-width:720px){
+  .match-row.match-row-detail{
+    grid-template-columns:62px minmax(0,1fr) 75px;
+    min-height:72px;
+  }
+}
