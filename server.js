@@ -353,62 +353,77 @@ app.get('/api/roster-stats',async(_q,res)=>{
  try{
   if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const histories=await Promise.all(members.map(async member=>{
-   try{const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=30');return {member,history:(h.items||[]).slice(0,30)}}catch(_){return {member,history:[]}}
-  }));
-  const matchIds=[...new Set(histories.flatMap(x=>x.history.map(m=>m.match_id).filter(Boolean)))];
-  const [matchDetails,matchStats]=await Promise.all([
-   limitMap(matchIds,6,async id=>{try{return {id,data:await faceit('/matches/'+encodeURIComponent(id))}}catch(_){return null}}),
-   limitMap(matchIds,6,async id=>{try{return {id,data:await faceit('/matches/'+encodeURIComponent(id)+'/stats')}}catch(_){return null}})
-  ]);
-  const details=new Map(matchDetails.filter(Boolean).map(x=>[String(x.id),x.data]));
-  const statsMap=new Map(matchStats.filter(Boolean).map(x=>[String(x.id),x.data]));
-  const out=histories.map(({member,history})=>{
-   let matches=0,wins=0,kills=0,deaths=0,assists=0,adrSum=0,adrCount=0;
-   for(const h of history){
-    const id=String(h.match_id||''); if(!id)continue;
-    const m=details.get(id),st=statsMap.get(id); if(!m||!st)continue;
-    let player=null,ourSideKey=null;
-    for(const [key,side] of Object.entries(m.teams||{})){
-     for(const p of side.players||side.roster||[]){
-      if(String(p.player_id||p.user_id||'')===String(member.user_id)||String(p.nickname||'').toLowerCase()===String(member.nickname||'').toLowerCase()){player=p;ourSideKey=key;break;}
-     }
-     if(player)break;
+  const out=await Promise.all(members.map(async member=>{
+   const base={nickname:member.nickname,matches:0,wins:0,kills:0,deaths:0,assists:0,adrSum:0,adrCount:0,clutchAttempts:0,clutchWins:0,headshots:0,headshotRounds:0,firstKills:0,firstDeaths:0};
+   let items=[];
+   try{
+    const r=await faceit('/players/'+encodeURIComponent(member.user_id)+'/games/cs2/stats?offset=0&limit=30');
+    items=Array.isArray(r?.items)?r.items:[];
+   }catch(_){}
+   const getStat=(s,keys)=>{
+    for(const key of keys){
+     if(s&&s[key]!==undefined&&s[key]!==null&&s[key]!=='')return num(s[key]);
     }
-    if(!player)continue;
-    let ps=null;
-    for(const round of st.rounds||[]){
-     for(const side of round.teams||[]){
-      for(const p of side.players||[]){
-       if(String(p.player_id||p.user_id||'')===String(member.user_id)||String(p.nickname||'').toLowerCase()===String(member.nickname||'').toLowerCase()){ps=p.player_stats||{};break;}
-      }
-      if(ps)break;
-     }
-     if(ps)break;
+    const wanted=keys.map(k=>String(k).toLowerCase().replace(/[^a-z0-9]/g,''));
+    for(const [k,v] of Object.entries(s||{})){
+     const nk=String(k).toLowerCase().replace(/[^a-z0-9]/g,'');
+     if(wanted.includes(nk)){const n=num(v);if(n!==null)return n;}
     }
-    if(!ps)continue;
-    const k=val(ps,['Kills','kills','K']),d=val(ps,['Deaths','deaths','D']),a=val(ps,['Assists','assists','A']),adr=val(ps,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-    if(k!==null)kills+=k;if(d!==null)deaths+=d;if(a!==null)assists+=a;if(adr!==null){adrSum+=adr;adrCount++;}
-    matches++;
-    const winner=m.results?.winner||m.winner;
-    if(winner&&String(winner)===String(ourSideKey))wins++;
-    else{
-     const sides=Object.entries(m.teams||{});
-     const sc=sides.map(([key,side])=>({key,score:Number(side.score??side.stats?.score??0)})).sort((x,y)=>y.score-x.score);
-     if(sc.length===2&&sc[0].score>sc[1].score&&sc[0].key===ourSideKey)wins++;
+    return null;
+   };
+   for(const item of items){
+    const st=item?.stats||item||{};
+    const k=getStat(st,['Kills','kills','K']),d=getStat(st,['Deaths','deaths','D']),a=getStat(st,['Assists','assists','A']),adr=getStat(st,['ADR','Average Damage per Round','Average Damage Per Round','adr']);
+    const hs=getStat(st,['Headshots','headshots']),fk=getStat(st,['First Kills','First Kills','FirstKills']),fd=getStat(st,['First Deaths','First Deaths','FirstDeaths']);
+    const winRaw=st['Result']??st['result']??st['Win']??st['win']??st['Winner']??st['winner'];
+    const won=typeof winRaw==='string'?['1','win','won','winner','true'].includes(winRaw.toLowerCase()):winRaw===1||winRaw===true;
+    if(k===null&&d===null&&a===null&&adr===null)continue;
+    base.matches++;
+    if(k!==null)base.kills+=k;if(d!==null)base.deaths+=d;if(a!==null)base.assists+=a;
+    if(adr!==null){base.adrSum+=adr;base.adrCount++;}
+    if(hs!==null)base.headshots+=hs;
+    if(fk!==null)base.firstKills+=fk;
+    if(fd!==null)base.firstDeaths+=fd;
+    if(won)base.wins++;
+    for(let n=1;n<=5;n++){
+     const ca=getStat(st,['1v'+n+'Count','1v'+n+' Count']),cw=getStat(st,['1v'+n+'Wins','1v'+n+' Wins']);
+     if(ca!==null)base.clutchAttempts+=ca;if(cw!==null)base.clutchWins+=cw;
     }
    }
-   const kd=deaths>0?kills/deaths:(kills?kills:null);
+   // Fallback for players whose per-player stats feed is unavailable.
+   if(base.matches===0){
+    try{
+     const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=30');
+     const history=(h.items||[]).slice(0,30),ids=history.map(x=>x.match_id).filter(Boolean);
+     const sts=await limitMap(ids,6,async id=>{try{return await faceit('/matches/'+encodeURIComponent(id)+'/stats')}catch(_){return null}});
+     for(const st of sts.filter(Boolean)){
+      let found=null;
+      for(const r of st.rounds||[])for(const side of r.teams||[])for(const p of side.players||[]){
+       if(String(p.player_id||'')===String(member.user_id)||String(p.nickname||'').toLowerCase()===String(member.nickname||'').toLowerCase()){found=p.player_stats||{};break;}
+       if(found)break;
+      }
+      if(!found)continue;
+      const k=val(found,['Kills','kills','K']),d=val(found,['Deaths','deaths','D']),a=val(found,['Assists','assists','A']),adr=val(found,['ADR','adr','Average Damage per Round']);
+      if(k===null&&d===null&&a===null&&adr===null)continue;
+      base.matches++;if(k!==null)base.kills+=k;if(d!==null)base.deaths+=d;if(a!==null)base.assists+=a;if(adr!==null){base.adrSum+=adr;base.adrCount++;}
+      const cs=clutchStats(found);base.clutchAttempts+=cs.attempts;base.clutchWins+=cs.wins;
+     }
+    }catch(_){}
+   }
+   const kd=base.deaths>0?base.kills/base.deaths:(base.kills?base.kills:null);
    return {
-    nickname:member.nickname,matches,wins,
-    winRate:matches?Math.round(wins/matches*1000)/10:null,
+    nickname:member.nickname,matches:base.matches,wins:base.wins,
+    winRate:base.matches?Math.round(base.wins/base.matches*1000)/10:null,
     kd:kd==null?null:Math.round(kd*100)/100,
-    adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
-    clutchRate:null,clutchAttempts:0,clutchWins:0,
-    avgKills:matches?Math.round(kills/matches*100)/100:null,
-    totalKills:kills,totalDeaths:deaths,totalAssists:assists
+    avgKills:base.matches?Math.round(base.kills/base.matches*100)/100:null,
+    adr:base.adrCount?Math.round(base.adrSum/base.adrCount*10)/10:null,
+    clutchRate:base.clutchAttempts?Math.round(base.clutchWins/base.clutchAttempts*1000)/10:null,
+    clutchAttempts:base.clutchAttempts,clutchWins:base.clutchWins,
+    totalKills:base.kills,totalDeaths:base.deaths,totalAssists:base.assists,
+    headshotRate:base.kills?Math.round(base.headshots/base.kills*1000)/10:null,
+    firstKills:base.firstKills,firstDeaths:base.firstDeaths
    };
-  });
+  }));
   rosterStatsCache=out;rosterStatsCacheAt=Date.now();res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
