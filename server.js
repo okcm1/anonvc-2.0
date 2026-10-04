@@ -195,10 +195,10 @@ app.get('/api/match/:id/summary',async(req,res)=>{
   const sm=new Map();
   for(const r of st?.rounds||[])for(const t of r.teams||[])for(const p of t.players||[])if(ours(p,ids,names)){
    const k=String(p.player_id||p.nickname||''),s=p.player_stats||{},e=sm.get(k)||{nickname:p.nickname||p.game_player_name||'UNKNOWN',kills:0,deaths:0,assists:0,rt:0,rc:0};
-   const kls=val(s,['Kills','kills','K']),d=val(s,['Deaths','deaths','D']),as=val(s,['Assists','assists','A']),rt=val(s,['Rating','rating','Player Rating','player_rating','rating_value','HLTV Rating','HLTV rating','HLTV_Rating','Rating 2.0','rating_2_0','Game Rating']) ?? ratingFromStats(s) ?? num(p?.rating ?? p?.player_rating ?? p?.stats?.Rating ?? p?.stats?.rating ?? p?.stats?.['HLTV Rating'] ?? p?.stats?.['Rating 2.0']);
-   if(kls!==null)e.kills+=kls;if(d!==null)e.deaths+=d;if(as!==null)e.assists+=as;if(rt!==null){e.rt+=rt;e.rc++}sm.set(k,e);
+   const kls=val(s,['Kills','kills','K']),d=val(s,['Deaths','deaths','D']),as=val(s,['Assists','assists','A']),adr=val(s,['ADR','adr','Average Damage per Round','average_damage_per_round']),rt=val(s,['Rating','rating','Player Rating','player_rating','rating_value','HLTV Rating','HLTV rating','HLTV_Rating','Rating 2.0','rating_2_0','Game Rating']) ?? ratingFromStats(s) ?? num(p?.rating ?? p?.player_rating ?? p?.stats?.Rating ?? p?.stats?.rating ?? p?.stats?.['HLTV Rating'] ?? p?.stats?.['Rating 2.0']);
+   if(kls!==null)e.kills+=kls;if(d!==null)e.deaths+=d;if(as!==null)e.assists+=as;if(adr!==null){e.adr=(e.adr||0)+adr;e.ac=(e.ac||0)+1}if(rt!==null){e.rt+=rt;e.rc++}sm.set(k,e);
   }
-  const players=[...sm.values()].map(x=>({...x,rating:x.rc?x.rt/x.rc:null,kd:x.deaths?x.kills/x.deaths:x.kills})).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills||y.kd-x.kd);
+  const players=[...sm.values()].map(x=>({...x,rating:x.rc?x.rt/x.rc:null,kd:x.deaths?x.kills/x.deaths:x.kills,adr:x.ac?x.adr/x.ac:null})).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills||y.kd-x.kd);
   let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
   res.json({id:m.match_id,status:m.status,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,won,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',mvp:players[0]||null,players,detailsLoaded:true});
  }catch(e){res.status(503).json({error:e.message})}
