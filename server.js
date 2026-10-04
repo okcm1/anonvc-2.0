@@ -83,11 +83,21 @@ const winnerFor=(m,s)=>{
   return null;
 };
 
+const normalizedStatKey=k=>String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const statAny=(s,keys)=>{
+  const obj=s||{},map={};
+  for(const [k,v] of Object.entries(obj))map[normalizedStatKey(k)]=v;
+  for(const k of keys){
+    const v=map[normalizedStatKey(k)];
+    if(v!==undefined&&v!==null&&v!=='')return num(v);
+  }
+  return null;
+};
 const clutchStats=s=>{
   let attempts=0,wins=0;
   for(let n=1;n<=5;n++){
-    const count=val(s,['1v'+n+'Count']);
-    const win=val(s,['1v'+n+'Wins']);
+    const count=statAny(s,['1v'+n+'Count','1v'+n+' Count']);
+    const win=statAny(s,['1v'+n+'Wins','1v'+n+' Win','1v'+n+' Won']);
     if(count!==null)attempts+=count;
     if(win!==null)wins+=win;
   }
@@ -128,27 +138,6 @@ app.get('/api/players',async(_q,res)=>{
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
-
-const normalizedStatKey=k=>String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const statAny=(s,keys)=>{
-  const obj=s||{},map={};
-  for(const [k,v] of Object.entries(obj))map[normalizedStatKey(k)]=v;
-  for(const k of keys){
-    const v=map[normalizedStatKey(k)];
-    if(v!==undefined&&v!==null&&v!=='')return num(v);
-  }
-  return null;
-};
-const clutchStats=s=>{
-  let attempts=0,wins=0;
-  for(let n=1;n<=5;n++){
-    const count=statAny(s,['1v'+n+'Count','1v'+n+' Count']);
-    const win=statAny(s,['1v'+n+'Wins','1v'+n+' Win','1v'+n+' Won']);
-    if(count!==null)attempts+=count;
-    if(win!==null)wins+=win;
-  }
-  return {attempts,wins};
-};
 
 app.get('/api/roster-stats',async(_q,res)=>{
  try{
