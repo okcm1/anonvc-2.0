@@ -73,6 +73,40 @@ function renderMatches(matches){
   $('#formDots').innerHTML = Array.from({length:10},(_,i)=>`<span class="${rows[i]?(rows[i].won?'win':'loss'):'unknown'}"></span>`).join('');
 }
 
+function renderTeamStats(data){
+  const lifetime=data?.lifetime || data?.stats?.lifetime || {};
+  const find=(obj,keys)=>{
+    for(const key of keys){
+      const value=obj?.[key];
+      if(value!==undefined && value!==null && value!=='') return value;
+    }
+    return null;
+  };
+  const wins=find(lifetime,['wins','win','matches_won']);
+  const losses=find(lifetime,['losses','loss','matches_lost']);
+  const games=find(lifetime,['matches','games','total_matches','played']);
+  let rate=find(lifetime,['win_rate','winRate','winrate']);
+  if(rate!==null && Number(rate)<=1) rate=Number(rate)*100;
+  if(rate===null && wins!==null && losses!==null && Number(wins)+Number(losses)>0) rate=Number(wins)/(Number(wins)+Number(losses))*100;
+
+  if(rate!==null) {
+    const formatted=Math.round(Number(rate))+'%';
+    $('#winRate').textContent=formatted;
+    $('#statsWinRate').textContent=formatted;
+  }
+  if(wins!==null) $('#wins').textContent=wins;
+  if(losses!==null) $('#losses').textContent=losses;
+  if(games!==null) {
+    $('#games').textContent=games;
+    $('#statsGames').textContent=games;
+  } else if(wins!==null && losses!==null) {
+    const total=Number(wins)+Number(losses);
+    $('#games').textContent=total;
+    $('#statsGames').textContent=total;
+  }
+  if(wins!==null || losses!==null) $('#statsRecord').textContent=`${wins??'—'} — ${losses??'—'}`;
+}
+
 async function getJson(url){
   const r=await fetch(url,{cache:'no-store'});
   const data=await r.json().catch(()=>({error:'Invalid server response'}));
@@ -91,13 +125,15 @@ async function boot(){
       return;
     }
 
-    const [players,matches]=await Promise.all([
+    const [players,matches,teamStats]=await Promise.all([
       getJson('/api/players'),
-      getJson('/api/matches')
+      getJson('/api/matches'),
+      getJson('/api/team-stats').catch(()=>null)
     ]);
 
     if(Array.isArray(players)) renderPlayers(players);
     renderMatches(Array.isArray(matches) ? matches : []);
+    if(teamStats) renderTeamStats(teamStats);
 
     $('#liveState').textContent='FACEIT LINKED';
     $('#apiState').textContent='ONLINE';
