@@ -48,6 +48,24 @@ function renderRosterPerformance(stats){
   });
 }
 
+function renderPresence(data){
+  var by={};
+  (data&&Array.isArray(data.players)?data.players:[]).forEach(function(p){by[p.nickname]=p;});
+  document.querySelectorAll('.operator,.roster-card').forEach(function(el){
+    var n=el.getAttribute('data-player')||((el.querySelector('strong')||{}).textContent||'').trim();
+    var p=by[n]; if(!p)return;
+    var state=p.state||'UNKNOWN';
+    var label=state==='IN_MATCH'?'IN MATCH':state==='RECENTLY_ACTIVE'?'RECENTLY ACTIVE':state==='NO_RECENT_ACTIVITY'?'NO RECENT ACTIVITY':'UNKNOWN';
+    var dot='<span class="presence-dot presence-'+state.toLowerCase()+'"></span>';
+    var target=el.querySelector('.presence-status');
+    if(!target){target=document.createElement('span');target.className='presence-status';el.appendChild(target);}
+    target.innerHTML=dot+label;
+    el.classList.toggle('is-in-match',state==='IN_MATCH');
+  });
+  var op=document.querySelector('.operator-footer b');
+  if(op){var list=Object.values(by),inm=list.filter(function(x){return x.state==='IN_MATCH';}).length;op.textContent=inm+' / 5 IN MATCH';}
+}
+
 function renderPlayers(players){
   var m=mergedPlayers(players);
   var list=$('#operatorList'), grid=$('#rosterGrid');
@@ -289,6 +307,7 @@ async function pollLiveFeed(){
     var manualId=manualLiveMatchId();
     var live=await getJson('/api/live-match'+(manualId?'?matchId='+encodeURIComponent(manualId):'')).catch(function(){return null;});
     if(live){renderLiveMatch(live);}
+    getJson('/api/player-presence').then(renderPresence).catch(function(){});
     var fresh=await getJson('/api/matches');
     if(live){ return; }
     if(Array.isArray(fresh)){
@@ -317,9 +336,10 @@ async function boot(){
     if($('#apiState')) $('#apiState').textContent=status.configured?'ONLINE':'OFFLINE';
     if($('#statsStatus')) $('#statsStatus').textContent=status.configured?'FACEIT API READY':'FACEIT API KEY REQUIRED';
     if(!status.configured){renderMatches([]);return;}
-    var result=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
+    var result=await Promise.all([getJson('/api/players'),getJson('/api/matches'),getJson('/api/player-presence')]);
     if(Array.isArray(result[0]))renderPlayers(result[0]);
     renderMatches(Array.isArray(result[1])?result[1]:[]);
+    renderPresence(result[2]);
     getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);window.dispatchEvent(new CustomEvent('anonvc:roster-stats'));}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
     var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
     var first=filteredRows().slice(0,2);
