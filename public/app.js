@@ -38,7 +38,8 @@ function mvpHtml(m){
 function rowHtml(m){
  const d=detailFor(m);
  const score=(d.ourScore!=null&&d.opponentScore!=null)?d.ourScore+' : '+d.opponentScore:'— : —';
- return '<div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'"><span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span><div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(m.date)+'</small>'+mvpHtml(m)+'</div><div class="score">'+score+'</div><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a></div>';
+ const detail=d.players?.length?'<div class="match-expanded"><div class="match-expanded-head">TEAM PERFORMANCE</div>'+d.players.slice(0,5).map(p=>'<div class="player-line"><b>'+esc(p.nickname)+'</b><span>'+p.kills+'K / '+p.deaths+'D / '+p.assists+'A</span><span>RATING '+(p.rating!=null?Number(p.rating).toFixed(2):'—')+'</span></div>').join('')+'</div>':'';
+ return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'"><span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span><div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(m.date)+'</small>'+mvpHtml(m)+'</div><div class="score">'+score+'</div><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a></div>'+detail+'</div>';
 }
 function emptyHtml(){return '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no player matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>'}
 function controlsHtml(total){
