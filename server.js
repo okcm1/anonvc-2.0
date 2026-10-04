@@ -20,19 +20,32 @@ const ourSide=(teams,ids,names)=>Object.values(teams||{}).find(s=>(s.players||s.
 const sideEntries=teams=>Object.entries(teams||{});
 const sideKey=(teams,side)=>sideEntry=>sideEntry?.[1]===side;
 const score=(m,s)=>{
-  const scores=m?.results?.score||{};
   if(!s)return null;
+  const scores=m?.results?.score||{};
   if(s.team_id&&scores[s.team_id]!=null)return num(scores[s.team_id]);
   const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
   if(entry&&scores[entry[0]]!=null)return num(scores[entry[0]]);
-  const vals=Object.values(scores).map(num).filter(v=>v!==null);
-  return vals.length===2&&entry?num(scores[entry[0]]):null;
+  const faction=s.faction_id;
+  if(faction&&scores[faction]!=null)return num(scores[faction]);
+  for(const dr of m?.detailed_results||[]){
+    const fs=dr?.factions||{};
+    if(s.team_id&&fs[s.team_id]?.score!=null)return num(fs[s.team_id].score);
+    if(entry&&fs[entry[0]]?.score!=null)return num(fs[entry[0]].score);
+    if(faction&&fs[faction]?.score!=null)return num(fs[faction].score);
+  }
+  return null;
 };
 const winnerFor=(m,s)=>{
   if(!s)return null;
   if(m?.results?.winner&&s.team_id)return m.results.winner===s.team_id;
   const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
   if(entry&&m?.results?.winner)return m.results.winner===entry[0];
+  for(const dr of m?.detailed_results||[]){
+    if(!dr?.winner)continue;
+    if(s.team_id&&dr.winner===s.team_id)return true;
+    if(entry&&dr.winner===entry[0])return true;
+    if(s.faction_id&&dr.winner===s.faction_id)return true;
+  }
   return null;
 };
 
