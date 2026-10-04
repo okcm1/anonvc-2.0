@@ -356,7 +356,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
   const memberData=await Promise.all(members.map(async member=>{
     let stats=[],history=[];
     try{
-      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=30');
+      const data=await faceit('/players/'+member.user_id+'/stats/cs2?limit=30');
       stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
     }catch(_){stats=[];}
     try{
