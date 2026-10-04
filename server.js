@@ -50,6 +50,21 @@ const winnerFor=(m,s)=>{
   return null;
 };
 
+const clutchStats=s=>{
+  let attempts=0,wins=0;
+  for(let n=1;n<=5;n++){
+    const count=val(s,['1v'+n+'Count']);
+    const win=val(s,['1v'+n+'Wins']);
+    if(count!==null)attempts+=count;
+    if(win!==null)wins+=win;
+  }
+  return {attempts,wins};
+};
+
+let rosterStatsCache=null;
+let rosterStatsCacheAt=0;
+const rosterStatsCacheTtl=60000;
+
 app.use(express.static(path.join(__dirname,'public')));
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
 app.get('/api/team',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID))}catch(e){res.status(503).json({error:e.message})}});
@@ -63,6 +78,83 @@ app.get('/api/players',async(_q,res)=>{
    const c=d.games?.cs2||{};
    return{id:d.player_id||m.user_id,nickname:d.nickname||m.nickname,avatar:d.avatar||m.avatar||'',country:d.country||m.country||'',faceitUrl:String(d.faceit_url||m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),skillLevel:c.skill_level??m.skill_level??null,elo:c.faceit_elo??m.faceit_elo??null};
   }));
+  res.json(out);
+ }catch(e){res.status(503).json({error:e.message})}
+});
+
+app.get('/api/roster-stats',async(_q,res)=>{
+ try{
+  if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
+  const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
+  const ids=new Set(members.map(m=>String(m.user_id)));
+  const names=new Set(members.map(m=>String(m.nickname||'').toLowerCase()));
+  const histories=await Promise.all(members.map(async m=>{
+    try{
+      const h=await faceit('/players/'+m.user_id+'/history?game=cs2&limit=20');
+      return {member:m,items:(h.items||[]).filter(x=>x.match_id).sort((a,b)=>(b.finished_at||b.started_at||0)-(a.finished_at||a.started_at||0)).slice(0,20)};
+    }catch(_){return {member:m,items:[]};}
+  }));
+  const allMatches=new Map();
+  histories.forEach(h=>h.items.forEach(item=>{if(!allMatches.has(item.match_id))allMatches.set(item.match_id,item);}));
+  const statsCache=new Map();
+  const idsToFetch=[...allMatches.keys()];
+  let cursor=0;
+  const worker=async()=>{
+    while(cursor<idsToFetch.length){
+      const id=idsToFetch[cursor++];
+      try{statsCache.set(id,await faceit('/matches/'+encodeURIComponent(id)+'/stats'));}catch(_){statsCache.set(id,null);}
+    }
+  };
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  const out=histories.map(h=>{
+    const playerId=String(h.member.user_id),nickname=String(h.member.nickname||'').toLowerCase();
+    let matches=0,wins=0,kills=0,deaths=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0;
+    h.items.forEach(m=>{
+      const sides=Object.values(m.teams||{});
+      const ps=sides.find(s=>(s.players||s.roster||[]).some(p=>String(p.player_id||'')===playerId||String(p.nickname||p.game_player_name||'').toLowerCase()===nickname));
+      if(!ps)return;
+      let won=winnerFor(m,ps);
+      const scA=score(m,ps),opp=sides.find(s=>s!==ps),scB=score(m,opp);
+      if(won===null&&scA!==null&&scB!==null)won=scA>scB;
+      const st=statsCache.get(m.match_id);
+      let playerStat=null;
+      for(const round of st?.rounds||[]){
+        for(const side of round.teams||[]){
+          for(const p of side.players||[]){
+            if(String(p.player_id||'')===playerId||String(p.nickname||p.game_player_name||'').toLowerCase()===nickname){playerStat=p.player_stats||p.stats||p;break;}
+          }
+          if(playerStat)break;
+        }
+        if(playerStat)break;
+      }
+      if(!playerStat)return;
+      const k=val(playerStat,['Kills','kills','K']);
+      const d=val(playerStat,['Deaths','deaths','D']);
+      const adr=val(playerStat,['ADR','adr','Average Damage per Round','average_damage_per_round']);
+      const kd=val(playerStat,['K/D Ratio','K/D','KD','kd_ratio']);
+      const cl=clutchStats(playerStat);
+      if(k===null&&d===null&&adr===null&&kd===null)return;
+      matches++;
+      if(won===true)wins++;
+      if(k!==null)kills+=k;
+      if(d!==null)deaths+=d;
+      if(kd!==null){kdSum+=kd;kdCount++;}else if(k!==null&&d!==null){kdSum+=d?k/d:k;kdCount++;}
+      if(adr!==null){adrSum+=adr;adrCount++;}
+      clutchAttempts+=cl.attempts;clutchWins+=cl.wins;
+    });
+    return {
+      nickname:h.member.nickname,
+      matches,
+      wins,
+      winRate:matches?Math.round(wins/matches*1000)/10:null,
+      kd:kdCount?Math.round(kdSum/kdCount*100)/100:(deaths?Math.round(kills/deaths*100)/100:null),
+      adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
+      clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
+      clutchAttempts,
+      clutchWins
+    };
+  });
+  rosterStatsCache=out;rosterStatsCacheAt=Date.now();
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
