@@ -16,3 +16,5 @@
 .win-dot,.loss-dot,.unk-dot{width:7px;height:7px;display:block}
 .win-dot{background:var(--green)}.loss-dot{background:var(--red)}.unk-dot{background:#393d43}
 @media(max-width:900px){.match-intel{grid-template-columns:repeat(2,1fr)}.match-intel>div:nth-child(2){border-right:0}.match-intel>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+.operators{align-self:start}.form{align-self:start}
