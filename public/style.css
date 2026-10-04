@@ -121,3 +121,282 @@
 #roster .roster-metrics div:nth-child(5){
   border-right:1px solid var(--line);
 }
+
+
+/* =========================================================
+   ANONVC 2.1 — CINEMATIC ESPORTS VISUAL POLISH
+   Visual-only pass: wider canvas, stronger branding, less empty space.
+   ========================================================= */
+:root{
+  --max:1760px;
+  --line-soft:#20242a;
+}
+body{
+  background:
+    radial-gradient(ellipse at 50% -8%,rgba(239,48,48,.10) 0,transparent 30%),
+    radial-gradient(ellipse at 15% 35%,rgba(255,255,255,.035) 0,transparent 24%),
+    radial-gradient(ellipse at 85% 65%,rgba(239,48,48,.035) 0,transparent 25%),
+    #07080a;
+}
+body:before{
+  content:"ANONVC";
+  position:fixed;
+  z-index:-1;
+  right:-5vw;
+  top:20vh;
+  font-family:"Barlow Condensed",sans-serif;
+  font-size:clamp(220px,27vw,560px);
+  font-weight:800;
+  line-height:.72;
+  letter-spacing:-.04em;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(255,255,255,.028);
+  transform:rotate(-7deg);
+  pointer-events:none;
+  white-space:nowrap;
+}
+.topbar{
+  height:66px;
+  padding:0 clamp(18px,2.2vw,40px);
+  background:rgba(5,6,8,.82);
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.topbar:after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:-1px;
+  height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--red) 22%,transparent 58%);
+  opacity:.75;
+}
+.brand{font-size:13px}
+.brand img{width:37px;height:37px}
+.topbar nav{gap:clamp(18px,2vw,34px)}
+.topbar nav a{font-size:10px;transition:color .2s,letter-spacing .2s}
+.topbar nav a:hover{color:#fff;letter-spacing:1.8px}
+.faceit-btn{
+  padding:10px 15px;
+  background:linear-gradient(180deg,#181a1e,#101216);
+  transition:.2s;
+}
+.faceit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(239,48,48,.12)}
+
+.dashboard{
+  width:min(calc(100% - 28px),var(--max));
+  padding:24px 0 70px;
+  grid-template-columns:minmax(250px,290px) minmax(0,1fr) minmax(260px,300px);
+  gap:12px;
+  position:relative;
+}
+.dashboard:before{
+  content:"ANONYMOUS VIRGINS CLUB // CS2";
+  position:absolute;
+  left:2px;
+  top:7px;
+  color:#444950;
+  font-size:8px;
+  letter-spacing:2px;
+  font-weight:800;
+}
+.dashboard:after{
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:34%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--red));
+  opacity:.8;
+}
+.panel{
+  border-color:rgba(255,255,255,.085);
+  background:
+    linear-gradient(135deg,rgba(25,27,31,.96),rgba(9,11,14,.98) 72%);
+  box-shadow:0 22px 70px rgba(0,0,0,.25);
+}
+.panel:before{
+  content:"";
+  position:absolute;
+  top:0;left:0;
+  width:28px;height:2px;
+  background:var(--red);
+  opacity:.9;
+  z-index:1;
+}
+.panel:after{
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.035),transparent 25%),
+    linear-gradient(315deg,transparent 72%,rgba(239,48,48,.025));
+}
+.panel-title{
+  height:40px;
+  border-bottom-color:rgba(255,255,255,.075);
+}
+.match-center{
+  min-height:420px;
+  overflow:hidden;
+}
+.match-center:before{
+  width:110px;
+  height:2px;
+}
+.match-center:after{
+  content:"ANONVC";
+  position:absolute;
+  right:-20px;
+  bottom:15px;
+  font-family:"Barlow Condensed";
+  font-size:210px;
+  line-height:.7;
+  font-weight:800;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(255,255,255,.025);
+  transform:rotate(-8deg);
+  pointer-events:none;
+}
+.match-head{
+  height:185px;
+  padding:28px 48px;
+  position:relative;
+  z-index:1;
+}
+.match-head strong{font-size:72px;text-shadow:0 0 30px rgba(255,255,255,.06)}
+.match-head small{font-size:8px}
+.versus{
+  font-size:12px;
+  position:relative;
+}
+.versus:before,.versus:after{
+  content:"";
+  display:inline-block;
+  width:28px;
+  height:1px;
+  background:var(--line);
+  vertical-align:middle;
+  margin:0 10px;
+}
+.mapline,.rounds,.match-intel{position:relative;z-index:1}
+.mapline{margin:0 48px}
+.rounds{padding:10px 48px 20px}
+.rounds span{height:5px}
+.match-intel{margin:0 48px}
+.match-intel>div{padding:15px 13px}
+.operators,.side,.recent,.form{position:relative}
+.operators{min-height:420px}
+.operator{padding:13px 15px}
+.operator:hover{background:rgba(255,255,255,.018)}
+.operator strong{font-size:11px}
+.operator-footer{margin-top:10px}
+.statbox .big-stat{padding-top:28px}
+.big-stat b{font-size:68px}
+.faceitbox>b{font-size:29px}
+.next strong{font-size:34px}
+.recent{
+  margin-top:0;
+  min-height:250px;
+}
+.form{min-height:250px}
+.match-row{
+  padding:15px 17px;
+  transition:background .18s,transform .18s;
+}
+.match-row-detail:hover{background:rgba(255,255,255,.025);transform:translateX(2px)}
+.section{
+  width:min(calc(100% - 28px),var(--max));
+  padding:100px 0 90px;
+  min-height:78vh;
+  position:relative;
+}
+.section:before{
+  content:"";
+  position:absolute;
+  top:38px;
+  right:0;
+  width:24%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--red));
+  opacity:.55;
+}
+.section-head{
+  margin-bottom:24px;
+  padding-bottom:20px;
+  border-bottom-color:rgba(255,255,255,.10);
+}
+.section-head h1{
+  font-size:76px;
+  letter-spacing:1.5px;
+  text-shadow:0 10px 35px rgba(0,0,0,.5);
+}
+.section-head small{letter-spacing:2px}
+.section-head>span{letter-spacing:2px}
+.roster-grid{gap:14px}
+#roster .roster-card{
+  min-height:620px;
+  background:
+    linear-gradient(180deg,rgba(18,20,24,.82),rgba(7,9,11,.98)),
+    radial-gradient(circle at 50% 10%,rgba(239,48,48,.07),transparent 35%);
+  transition:transform .22s,border-color .22s,box-shadow .22s;
+}
+#roster .roster-card:hover{
+  transform:translateY(-5px);
+  border-color:rgba(239,48,48,.38);
+  box-shadow:0 25px 70px rgba(0,0,0,.42),0 0 35px rgba(239,48,48,.05);
+}
+#roster .roster-photo{
+  position:relative;
+  border-color:rgba(255,255,255,.08);
+}
+#roster .roster-photo:after{
+  content:"01 // OPERATOR";
+  position:absolute;
+  left:10px;bottom:8px;
+  font-size:7px;
+  color:rgba(255,255,255,.38);
+  letter-spacing:1.5px;
+}
+#roster .roster-identity h2{font-size:38px}
+#roster .roster-metrics div{background:rgba(255,255,255,.012)}
+#roster .roster-link{letter-spacing:1.2px}
+.stats-overview,.stats-analytics{gap:12px}
+.stats-overview .panel,.analytics-card{
+  transition:transform .2s,border-color .2s;
+}
+.stats-overview .panel:hover,.analytics-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(239,48,48,.28);
+}
+.stats-performance-panel,.stats-table-panel,.stats-id{box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.stats-id{margin-bottom:30px}
+.about-grid{gap:14px}
+.about-grid .panel{min-height:230px}
+.quote{font-size:50px}
+footer{
+  background:#060709;
+  padding-left:clamp(18px,2.2vw,40px);
+  padding-right:clamp(18px,2.2vw,40px);
+  border-top-color:rgba(255,255,255,.08);
+}
+@media(max-width:1050px){
+  .dashboard{width:calc(100% - 24px);padding-top:24px}
+  .section{width:calc(100% - 24px)}
+  .match-head{padding-left:28px;padding-right:28px}
+  .mapline,.rounds,.match-intel{margin-left:28px;margin-right:28px}
+}
+@media(max-width:720px){
+  body:before{font-size:170px;top:24vh;right:-35vw}
+  .dashboard{width:100%;padding:18px 12px 55px}
+  .dashboard:before{display:none}
+  .section{width:100%;padding:70px 12px 60px}
+  .section:before{top:30px;width:35%}
+  .section-head h1{font-size:54px}
+  .match-center{min-height:350px}
+  .match-center:after{font-size:130px}
+  .match-head{height:145px;padding:20px 12px}
+  .match-head strong{font-size:55px}
+  .versus:before,.versus:after{display:none}
+  .mapline,.rounds,.match-intel{margin-left:15px;margin-right:15px}
+  .match-intel{grid-template-columns:repeat(2,1fr)}
+  .match-intel>div:nth-child(2){border-right:0}
+  .match-intel>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  #roster .roster-card{min-height:500px}
+}
