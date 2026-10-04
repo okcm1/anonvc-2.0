@@ -276,6 +276,23 @@ async function getJson(url){
   return d;
 }
 
+async function pollLiveMatch(){
+  try{
+    var live=await getJson('/api/live-match').catch(function(){return null;});
+    if(!live)return;
+    if($('#heroOurScore'))$('#heroOurScore').textContent=live.ourScore!=null?live.ourScore:'—';
+    if($('#heroOpponentScore'))$('#heroOpponentScore').textContent=live.opponentScore!=null?live.opponentScore:'—';
+    if($('#heroOpponent'))$('#heroOpponent').textContent=live.opponent||'WAITING';
+    if($('#heroMap'))$('#heroMap').textContent=live.map||'CS2';
+    if($('#heroDate'))$('#heroDate').textContent=live.date||'—';
+    if($('#liveState'))$('#liveState').textContent='LIVE MATCH';
+    if($('#heroStatus'))$('#heroStatus').textContent=String(live.status||'LIVE').toUpperCase();
+    if($('#heroMode'))$('#heroMode').textContent=live.matchType==='TEAM'?'TEAM MATCH':live.matchType==='STACK'?'STACK MATCH':'SOLO MATCH';
+    if($('#heroPlayers'))$('#heroPlayers').textContent=(live.participantCount||'?')+' / 5';
+    if($('#heroUpdated'))$('#heroUpdated').textContent='LIVE · '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  }catch(_){}
+}
+
 async function boot(){
   renderPlayers(FALLBACK);
   try{
@@ -303,4 +320,8 @@ async function boot(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('DOMContentLoaded',function(){
+  boot();
+  setTimeout(pollLiveMatch,1200);
+  setInterval(pollLiveMatch,10000);
+});
