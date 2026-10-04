@@ -25,3 +25,24 @@
 .roster-metrics b{font-family:"Barlow Condensed";font-size:16px;line-height:1}
 .roster-card a{margin-top:9px}
 @media(max-width:720px){.roster-metrics small{font-size:6px}.roster-metrics b{font-size:14px}}
+
+/* ROSTER — expanded operator cards */
+#roster{min-height:calc(100vh - 72px);padding-bottom:80px}
+#roster .roster-grid{align-items:stretch}
+#roster .roster-card{min-height:500px;padding:16px}
+#roster .roster-card .avatar{width:82px;height:82px;font-size:34px}
+#roster .roster-card h2{font-size:36px;margin-top:16px}
+#roster .roster-card p{margin:7px 0 14px}
+#roster .roster-metrics{margin-top:auto}
+#roster .roster-metrics div{padding:13px 3px}
+#roster .roster-metrics small{font-size:7px;margin-bottom:5px}
+#roster .roster-metrics b{font-size:19px}
+#roster .roster-card a{padding:14px 0 2px;margin-top:12px}
+@media(max-width:1050px){
+  #roster .roster-card{min-height:460px}
+}
+@media(max-width:720px){
+  #roster .roster-card{min-height:390px}
+  #roster .roster-card .avatar{width:65px;height:65px}
+  #roster .roster-card h2{font-size:31px}
+}
