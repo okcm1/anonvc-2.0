@@ -113,3 +113,11 @@
 #roster .roster-link{margin-top:0!important;padding-top:15px!important}
 @media(max-width:1050px){#roster .roster-card{min-height:560px}}
 @media(max-width:720px){#roster .roster-card{min-height:500px}}
+
+#roster .roster-metrics div:last-child{
+  grid-column:auto!important;
+  border-right:0;
+}
+#roster .roster-metrics div:nth-child(5){
+  border-right:1px solid var(--line);
+}
