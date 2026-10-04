@@ -206,3 +206,204 @@ body:after{
   .panel{border-radius:10px}
   .roster-card{border-radius:12px}
 }
+
+
+/* ANONVC // DETAIL PASS // NO BLOCK GLOW */
+.panel,
+.match-card,
+.roster-card,
+.stats-overview .panel,
+.stats-analytics .panel{
+  box-shadow:0 14px 35px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.025);
+}
+.match-center{box-shadow:0 14px 40px rgba(0,0,0,.34);}
+.roster-card:hover{box-shadow:0 18px 42px rgba(0,0,0,.4);}
+
+.panel:after{
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.025),transparent 24%),
+    linear-gradient(315deg,transparent 0 93%,rgba(255,36,48,.035) 93.2% 94%,transparent 94.2%);
+}
+.panel-title{
+  position:relative;
+}
+.panel-title:after{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:-1px;
+  width:34px;
+  height:1px;
+  background:var(--red);
+}
+.panel-title i{
+  padding:4px 7px;
+  border:1px solid #292e34;
+  border-radius:4px;
+  background:#090b0d;
+}
+.operator{
+  position:relative;
+}
+.operator:before{
+  content:"";
+  width:3px;
+  height:20px;
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  background:#343a40;
+  transition:.18s;
+}
+.operator:hover:before{background:var(--red)}
+.avatar{
+  position:relative;
+}
+.avatar:before{
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(255,255,255,.04);
+  border-radius:6px;
+  pointer-events:none;
+}
+.match-center:before{
+  width:150px;
+  background:linear-gradient(90deg,var(--red),#5d1015,transparent);
+}
+.match-head{
+  position:relative;
+}
+.match-head:before{
+  content:"LIVE // MATCH FEED";
+  position:absolute;
+  top:12px;
+  left:16px;
+  color:#4d555d;
+  font:7px "Space Mono";
+  letter-spacing:1.5px;
+}
+.match-head:after{
+  content:"";
+  position:absolute;
+  top:14px;
+  right:16px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--red);
+}
+.rounds span{
+  position:relative;
+  border-radius:1px;
+}
+.rounds span:nth-child(6):after{
+  content:"";
+  position:absolute;
+  right:-1px;
+  top:-4px;
+  width:2px;
+  height:13px;
+  background:#fff;
+  opacity:.75;
+}
+.roster-card:after{
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:42px;
+  height:42px;
+  border-top:1px solid rgba(255,36,48,.6);
+  border-right:1px solid rgba(255,36,48,.6);
+  border-radius:0 14px 0 0;
+  pointer-events:none;
+}
+.roster-card .avatar:after{
+  content:"FACEIT // OPERATOR";
+  position:absolute;
+  left:10px;
+  bottom:9px;
+  padding:3px 5px;
+  background:rgba(5,6,7,.85);
+  border-left:2px solid var(--red);
+}
+.roster-identity{
+  position:relative;
+}
+.roster-identity:before{
+  content:"ROLE";
+  position:absolute;
+  right:0;
+  top:3px;
+  color:#414850;
+  font:6px "Space Mono";
+  letter-spacing:1px;
+}
+.match-card .match-row{
+  position:relative;
+}
+.match-card .match-row:after{
+  content:"";
+  position:absolute;
+  right:12px;
+  top:9px;
+  width:18px;
+  height:18px;
+  border-top:1px solid #343a40;
+  border-right:1px solid #343a40;
+  opacity:.55;
+}
+.stat-number{
+  position:relative;
+}
+.stat-number:after{
+  content:"";
+  display:block;
+  width:26px;
+  height:2px;
+  margin-top:7px;
+  background:var(--red);
+}
+.section-head h1{
+  position:relative;
+}
+.section-head h1:after{
+  content:"";
+  display:inline-block;
+  width:34px;
+  height:7px;
+  margin-left:9px;
+  vertical-align:middle;
+  background:var(--red);
+  clip-path:polygon(0 0,100% 0,72% 100%,0 100%);
+}
+.match-tab.active{
+  position:relative;
+}
+.match-tab.active:after{
+  content:"";
+  position:absolute;
+  top:3px;
+  right:3px;
+  width:4px;
+  height:4px;
+  background:var(--red);
+}
+.faceitbox a:before{
+  content:"↗ ";
+  color:var(--red);
+}
+footer{
+  position:relative;
+}
+footer:before{
+  content:"ANONVC // SYSTEM ONLINE";
+  color:#3f464d;
+}
+@media(max-width:760px){
+  .match-head:before{left:12px}
+  .match-head:after{right:12px}
+  .roster-card:after{border-radius:0 12px 0 0}
+}
