@@ -32,6 +32,14 @@ app.get('/api/team', async (_req, res) => {
   catch (e) { res.status(503).json({ error: e.message }); }
 });
 
+app.get('/api/team-stats', async (_req, res) => {
+  try {
+    res.json(await faceit(`/teams/${TEAM_ID}/stats/cs2`));
+  } catch (e) {
+    res.status(503).json({ error: e.message });
+  }
+});
+
 app.get('/api/players', async (_req, res) => {
   try {
     const team = await faceit(`/teams/${TEAM_ID}`);
@@ -41,7 +49,6 @@ app.get('/api/players', async (_req, res) => {
       try {
         details = await faceit(`/players/${member.user_id}`);
       } catch (_) {
-        // Some team members can fail by user_id; retry through nickname lookup.
         try {
           const lookup = await faceit(`/players?nickname=${encodeURIComponent(member.nickname)}&game=cs2`);
           details = lookup?.items?.[0] || {};
