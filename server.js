@@ -17,6 +17,10 @@ async function faceit(endpoint) {
   return response.json();
 }
 
+function faceitPlayerUrl(nickname) {
+  return `https://www.faceit.com/ru/players/${encodeURIComponent(nickname)}`;
+}
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/status', (_req, res) => {
@@ -34,16 +38,28 @@ app.get('/api/players', async (_req, res) => {
     const members = team.members || [];
     const players = await Promise.all(members.map(async member => {
       let details = {};
-      try { details = await faceit(`/players/${member.user_id}`); } catch (_) {}
+      try {
+        details = await faceit(`/players/${member.user_id}`);
+      } catch (_) {
+        // Some team members can fail by user_id; retry through nickname lookup.
+        try {
+          const lookup = await faceit(`/players?nickname=${encodeURIComponent(member.nickname)}&game=cs2`);
+          details = lookup?.items?.[0] || {};
+        } catch (_) {}
+      }
+
       const cs2 = details.games?.cs2 || {};
+      const memberUrl = String(member.faceit_url || '').replace('{lang}', 'ru');
+      const detailUrl = String(details.faceit_url || '').replace('{lang}', 'ru');
+
       return {
-        id: member.user_id,
-        nickname: member.nickname,
+        id: details.player_id || member.user_id,
+        nickname: details.nickname || member.nickname,
         avatar: details.avatar || member.avatar || '',
         country: details.country || member.country || '',
-        faceitUrl: details.faceit_url || member.faceit_url || `https://www.faceit.com/players/${encodeURIComponent(member.nickname)}`,
+        faceitUrl: detailUrl || memberUrl || faceitPlayerUrl(member.nickname),
         skillLevel: cs2.skill_level ?? member.skill_level ?? null,
-        elo: cs2.faceit_elo ?? null
+        elo: cs2.faceit_elo ?? member.faceit_elo ?? null
       };
     }));
     res.json(players);
@@ -70,7 +86,6 @@ app.get('/api/matches', async (_req, res) => {
       .slice(0, 20)
       .map(match => {
         const sides = Object.values(match.teams || {});
-        const ours = sides.find(t => t.team_id === TEAM_ID);
         const opponent = sides.find(t => t.team_id !== TEAM_ID);
         const scores = match.results?.score || {};
         return {
