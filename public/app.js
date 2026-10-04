@@ -28,6 +28,28 @@ var mergedPlayers = function(ps){
   });
 };
 
+var rosterPerformance={};
+
+function renderRosterPerformance(stats){
+  rosterPerformance={};
+  (Array.isArray(stats)?stats:[]).forEach(function(s){rosterPerformance[s.nickname]=s;});
+  document.querySelectorAll('.roster-card').forEach(function(card){
+    var key=card.getAttribute('data-player');
+    var s=rosterPerformance[key];
+    var box=card.querySelector('.roster-metrics');
+    if(!box)return;
+    if(!s||!s.matches){
+      box.innerHTML='<div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div>';
+      return;
+    }
+    box.innerHTML='<div><small>MATCHES</small><b>'+s.matches+'</b></div>'+
+      '<div><small>K/D</small><b>'+(s.kd==null?'—':s.kd.toFixed(2))+'</b></div>'+
+      '<div><small>ADR</small><b>'+(s.adr==null?'—':s.adr.toFixed(1))+'</b></div>'+
+      '<div><small>CLUTCH</small><b>'+(s.clutchRate==null?'—':s.clutchRate.toFixed(1)+'%')+'</b></div>'+
+      '<div><small>WINRATE</small><b>'+(s.winRate==null?'—':s.winRate.toFixed(1)+'%')+'</b></div>';
+  });
+}
+
 function renderPlayers(players){
   var m=mergedPlayers(players);
   var list=$('#operatorList'), grid=$('#rosterGrid');
@@ -35,8 +57,9 @@ function renderPlayers(players){
     return '<div class="operator"><div class="avatar">'+avatar(p)+'</div><div><strong>'+esc(p.nickname)+'</strong><small>'+esc(p.role||'Operator')+' · FACEIT '+(p.skillLevel==null?'—':p.skillLevel)+'</small></div><span class="lvl">'+(p.elo==null?'—':p.elo)+'</span></div>';
   }).join('');
   if(grid) grid.innerHTML=m.map(function(p){
-    return '<article class="panel roster-card"><div class="avatar">'+avatar(p)+'</div><h2>'+esc(p.nickname)+'</h2><p>'+esc(p.role||'Operator')+' · LVL '+(p.skillLevel==null?'—':p.skillLevel)+' · ELO '+(p.elo==null?'—':p.elo)+'</p><a href="'+esc(safeUrl(p.faceitUrl))+'" target="_blank" rel="noopener">FACEIT PROFILE ↗</a></article>';
+    return '<article class="panel roster-card" data-player="'+esc(p.nickname)+'"><div class="avatar">'+avatar(p)+'</div><h2>'+esc(p.nickname)+'</h2><p>'+esc(p.role||'Operator')+' · LVL '+(p.skillLevel==null?'—':p.skillLevel)+' · ELO '+(p.elo==null?'—':p.elo)+'</p><div class="roster-metrics"><div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div></div><a href="'+esc(safeUrl(p.faceitUrl))+'" target="_blank" rel="noopener">FACEIT PROFILE ↗</a></article>';
   }).join('');
+  renderRosterPerformance(m.map(function(p){return Object.assign({nickname:p.nickname,matches:null},p.rosterStats||{});}));
   renderPlayerStats(m);
 }
 
@@ -201,6 +224,7 @@ async function boot(){
     var result=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
     if(Array.isArray(result[0]))renderPlayers(result[0]);
     renderMatches(Array.isArray(result[1])?result[1]:[]);
+    getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
     var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
