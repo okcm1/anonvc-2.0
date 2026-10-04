@@ -61,9 +61,23 @@ const clutchStats=s=>{
   return {attempts,wins};
 };
 
+const limitMap=async(items,limit,fn)=>{
+  const out=new Array(items.length);
+  let next=0;
+  const worker=async()=>{
+    while(true){
+      const i=next++;
+      if(i>=items.length)return;
+      try{out[i]=await fn(items[i],i)}catch(_){out[i]=null}
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));
+  return out;
+};
+
 let rosterStatsCache=null;
 let rosterStatsCacheAt=0;
-const rosterStatsCacheTtl=60000;
+const rosterStatsCacheTtl=120000;
 
 app.use(express.static(path.join(__dirname,'public')));
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
@@ -86,15 +100,16 @@ app.get('/api/roster-stats',async(_q,res)=>{
  try{
   if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const out=await Promise.all(members.map(async member=>{
-    let stats=[];
+  const memberData=await Promise.all(members.map(async member=>{
+    let stats=[],history=[];
     try{
       const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=30');
       stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
     }catch(_){stats=[];}
-
-    // FACEIT's player-stats endpoint is explicitly "a given amount of matches".
-    // Sort by match-finished timestamp so these are the actual latest 20.
+    try{
+      const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=30');
+      history=h.items||[];
+    }catch(_){history=[];}
     const finishedAt=s=>Number(
       s?.['Match Finished At'] ??
       s?.['match_finished_at'] ??
@@ -102,51 +117,66 @@ app.get('/api/roster-stats',async(_q,res)=>{
       0
     );
     stats.sort((a,b)=>finishedAt(b)-finishedAt(a));
-    const recent=stats.slice(0,30);
+    return {member,stats:stats.slice(0,30),history:history.slice(0,30)};
+  }));
 
-    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0,clutchAttempts=0,clutchWins=0;
-    recent.forEach(st=>{
-      // Match result comes directly from FACEIT's per-match stats payload.
+  const matchIds=[...new Set(memberData.flatMap(x=>x.history.map(m=>m.match_id).filter(Boolean)))];
+  const matchStats=await limitMap(matchIds,6,async matchId=>{
+    try{return {matchId,data:await faceit('/matches/'+encodeURIComponent(matchId)+'/stats')}}
+    catch(_){return null}
+  });
+
+  const clutchByPlayer=new Map();
+  const addClutch=(playerId,stats)=>{
+    const id=String(playerId||'');
+    if(!id)return;
+    const prev=clutchByPlayer.get(id)||{attempts:0,wins:0};
+    const cl=clutchStats(stats||{});
+    prev.attempts+=cl.attempts;
+    prev.wins+=cl.wins;
+    clutchByPlayer.set(id,prev);
+  };
+  for(const item of matchStats){
+    if(!item?.data)continue;
+    for(const round of item.data.rounds||[]){
+      for(const side of round.teams||[]){
+        for(const p of side.players||[])addClutch(p.player_id,p.player_stats);
+      }
+    }
+  }
+
+  const out=memberData.map(({member,stats})=>{
+    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0;
+    stats.forEach(st=>{
       const rawResult=st?.Result ?? st?.result ?? null;
       if(rawResult!==null&&rawResult!==''){
         knownResults++;
         const r=String(rawResult).toLowerCase();
         if(rawResult===1||r==='1'||r==='win'||r==='won'||r==='victory')wins++;
       }
-
-      const k=val(st,['Kills','kills','K']);
-      const d=val(st,['Deaths','deaths','D']);
+      const k=val(st,['Kills','kills','K']),d=val(st,['Deaths','deaths','D']);
       const directKd=val(st,['K/D','K/D Ratio','K/D ratio','KD','kd','Average K/D','Average K/D Ratio']);
       const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-
       if(k!==null)kills+=k;
       if(d!==null)deaths+=d;
-
-      // Match-card values are based on the same recent-results sample FACEIT shows.
-      // Use FACEIT's own per-match K/D ratio when it is present.
       const matchKd=directKd!==null?directKd:(k!==null&&d!==null&&d>0?k/d:null);
       if(matchKd!==null){kdSum+=matchKd;kdCount++;}
-
       if(adr!==null){adrSum+=adr;adrCount++;}
-
-      const cl=clutchStats(st);
-      clutchAttempts+=cl.attempts;
-      clutchWins+=cl.wins;
     });
-
+    const cl=clutchByPlayer.get(String(member.user_id))||{attempts:0,wins:0};
     return {
       nickname:member.nickname,
-      matches:recent.length,
+      matches:stats.length,
       wins,
       winRate:knownResults?Math.round(wins/knownResults*1000)/10:null,
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
-      clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
-      avgKills:recent.length?Math.round(kills/recent.length*100)/100:null,
-      clutchAttempts,
-      clutchWins
+      clutchRate:cl.attempts?Math.round(cl.wins/cl.attempts*1000)/10:null,
+      clutchAttempts:cl.attempts,
+      clutchWins:cl.wins,
+      avgKills:stats.length?Math.round(kills/stats.length*100)/100:null
     };
-  }));
+  });
   rosterStatsCache=out;rosterStatsCacheAt=Date.now();
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
