@@ -6,11 +6,38 @@ const PORT=process.env.PORT||3000;
 const TEAM_ID=process.env.FACEIT_TEAM_ID||'a15fd8cf-bda5-4456-9445-86688331562e';
 const API='https://open.faceit.com/data/v4';
 const KEY=process.env.FACEIT_API_KEY;
+const apiCache=new Map();
+const apiInflight=new Map();
+let apiTail=Promise.resolve();
+let lastApiRequestAt=0;
+const API_CACHE_TTL=45000;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function faceit(endpoint){
   if(!KEY||KEY.includes('PASTE_YOUR'))throw new Error('FACEIT_API_KEY is not configured');
-  const r=await fetch(API+endpoint,{headers:{Authorization:'Bearer '+KEY}});
-  if(!r.ok)throw new Error('FACEIT API '+r.status);
-  return r.json();
+  const now=Date.now(),cached=apiCache.get(endpoint);
+  if(cached&&now-cached.at<API_CACHE_TTL)return cached.data;
+  if(apiInflight.has(endpoint))return apiInflight.get(endpoint);
+  const job=apiTail.then(async()=>{
+    const gap=Date.now()-lastApiRequestAt;
+    if(gap<300)await sleep(300-gap);
+    let lastStatus=0;
+    for(let attempt=0;attempt<3;attempt++){
+      lastApiRequestAt=Date.now();
+      const r=await fetch(API+endpoint,{headers:{Authorization:'Bearer '+KEY,Accept:'application/json'}});
+      if(r.ok){
+        const data=await r.json();
+        apiCache.set(endpoint,{at:Date.now(),data});
+        return data;
+      }
+      lastStatus=r.status;
+      if(r.status===429){await sleep(1200*(attempt+1));continue;}
+      throw new Error('FACEIT API '+r.status);
+    }
+    throw new Error('FACEIT API '+lastStatus);
+  });
+  apiTail=job.catch(()=>{});
+  apiInflight.set(endpoint,job);
+  try{return await job;}finally{apiInflight.delete(endpoint);}
 }
 const playerUrl=n=>'https://www.faceit.com/ru/players/'+encodeURIComponent(n);
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
@@ -87,10 +114,10 @@ app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TE
 app.get('/api/players',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
-  const out=await Promise.all(ms.map(async m=>{
-   let d={};try{d=await faceit('/players/'+m.user_id)}catch(_){try{d=(await faceit('/players?nickname='+encodeURIComponent(m.nickname)+'&game=cs2'))?.items?.[0]||{}}catch(_){}}
-   const c=d.games?.cs2||{};
-   return{id:d.player_id||m.user_id,nickname:d.nickname||m.nickname,avatar:d.avatar||m.avatar||'',country:d.country||m.country||'',faceitUrl:String(d.faceit_url||m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),skillLevel:c.skill_level??m.skill_level??null,elo:c.faceit_elo??m.faceit_elo??null};
+  const out=ms.map(m=>({
+    id:m.user_id,nickname:m.nickname,avatar:m.avatar||'',country:m.country||'',
+    faceitUrl:String(m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
+    skillLevel:m.skill_level??null,elo:m.faceit_elo??null
   }));
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
@@ -98,90 +125,40 @@ app.get('/api/players',async(_q,res)=>{
 
 app.get('/api/roster-stats',async(_q,res)=>{
  try{
-  if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
+  if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<API_CACHE_TTL)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const memberData=await Promise.all(members.map(async member=>{
-    let stats=[],history=[];
+  const out=[];
+  for(const member of members){
+    let stats=[];
     try{
-      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=30');
+      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=20');
       stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
-    }catch(_){stats=[];}
-    try{
-      const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=30');
-      history=h.items||[];
-    }catch(_){history=[];}
-    const finishedAt=s=>Number(
-      s?.['Match Finished At'] ??
-      s?.['match_finished_at'] ??
-      s?.['Match Finished At Timestamp'] ??
-      0
-    );
-    stats.sort((a,b)=>finishedAt(b)-finishedAt(a));
-    return {member,stats:stats.slice(0,30),history:history.slice(0,30)};
-  }));
-
-  const matchIds=[...new Set(memberData.flatMap(x=>x.history.map(m=>m.match_id).filter(Boolean)))];
-  const matchStats=await limitMap(matchIds,6,async matchId=>{
-    try{return {matchId,data:await faceit('/matches/'+encodeURIComponent(matchId)+'/stats')}}
-    catch(_){return null}
-  });
-
-  const clutchByPlayer=new Map();
-  const addClutch=(playerId,stats)=>{
-    const id=String(playerId||'');
-    if(!id)return;
-    const prev=clutchByPlayer.get(id)||{attempts:0,wins:0};
-    const cl=clutchStats(stats||{});
-    prev.attempts+=cl.attempts;
-    prev.wins+=cl.wins;
-    clutchByPlayer.set(id,prev);
-  };
-  for(const item of matchStats){
-    if(!item?.data)continue;
-    for(const round of item.data.rounds||[]){
-      for(const side of round.teams||[]){
-        for(const p of side.players||[])addClutch(p.player_id,p.player_stats);
-      }
-    }
-  }
-
-  const out=memberData.map(({member,stats})=>{
-    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0;
-    stats.forEach(st=>{
-      const rawResult=st?.Result ?? st?.result ?? null;
-      if(rawResult!==null&&rawResult!==''){
-        knownResults++;
-        const r=String(rawResult).toLowerCase();
-        if(rawResult===1||r==='1'||r==='win'||r==='won'||r==='victory')wins++;
-      }
+    }catch(_){}
+    let wins=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0,clutchAttempts=0,clutchWins=0;
+    for(const st of stats){
+      const r=String(st?.Result??st?.result??'').toLowerCase();
+      if(r==='1'||r==='win'||r==='won'||r==='victory')wins++;
       const k=val(st,['Kills','kills','K']),d=val(st,['Deaths','deaths','D']);
-      const directKd=val(st,['K/D','K/D Ratio','K/D ratio','KD','kd','Average K/D','Average K/D Ratio']);
+      const kd=val(st,['K/D Ratio','K/D','KD','kd_ratio']) ?? (k!==null&&d!==null&&d>0?k/d:null);
       const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-      if(k!==null)kills+=k;
-      if(d!==null)deaths+=d;
-      const matchKd=directKd!==null?directKd:(k!==null&&d!==null&&d>0?k/d:null);
-      if(matchKd!==null){kdSum+=matchKd;kdCount++;}
+      if(k!==null)kills+=k;if(d!==null)deaths+=d;
+      if(kd!==null){kdSum+=kd;kdCount++;}
       if(adr!==null){adrSum+=adr;adrCount++;}
-    });
-    const cl=clutchByPlayer.get(String(member.user_id))||{attempts:0,wins:0};
-    return {
-      nickname:member.nickname,
-      matches:stats.length,
-      wins,
-      winRate:knownResults?Math.round(wins/knownResults*1000)/10:null,
+      const cl=clutchStats(st);clutchAttempts+=cl.attempts;clutchWins+=cl.wins;
+    }
+    out.push({
+      nickname:member.nickname,matches:stats.length,wins,
+      winRate:stats.length?Math.round(wins/stats.length*1000)/10:null,
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
-      clutchRate:cl.attempts?Math.round(cl.wins/cl.attempts*1000)/10:null,
-      clutchAttempts:cl.attempts,
-      clutchWins:cl.wins,
+      clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
+      clutchAttempts,clutchWins,
       avgKills:stats.length?Math.round(kills/stats.length*100)/100:null
-    };
-  });
-  rosterStatsCache=out;rosterStatsCacheAt=Date.now();
-  res.json(out);
+    });
+  }
+  rosterStatsCache=out;rosterStatsCacheAt=Date.now();res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
-
 app.get('/api/matches',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),map=new Map();
