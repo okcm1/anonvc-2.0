@@ -430,21 +430,44 @@ app.get('/api/roster-stats',async(_q,res)=>{
 
 app.get('/api/matches',async(_q,res)=>{
  try{
-  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),map=new Map();
-  await Promise.all(ms.map(async m=>{try{const h=await faceit('/players/'+m.user_id+'/history?game=cs2&limit=100');for(const x of h.items||[])if(x.match_id&&!map.has(x.match_id))map.set(x.match_id,x)}catch(_){}}));
-  const out=[...map.values()].sort((a,b)=>(b.finished_at||b.started_at||0)-(a.finished_at||a.started_at||0)).slice(0,30).map(m=>{
-   const sides=Object.values(m.teams||{}),p=new Set(),participants=[];
-   for(const s of sides)for(const x of s.players||[])if(ours(x,ids,names)){const k=String(x.player_id||x.nickname||'').toLowerCase();if(!p.has(k)){p.add(k);participants.push(x.nickname||x.game_player_name)}}
-   if(!participants.length)for(const id of m.playing_players||[]){const mm=ms.find(x=>String(x.user_id)===String(id));if(mm)participants.push(mm.nickname)}
-   const count=participants.length;if(!count)return null;
-   const os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os),a=score(m,os),b=score(m,opp);
-   let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
+  const team=await faceit('/teams/'+TEAM_ID),ms=team.members||[];
+  const ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase()));
+  const historyMap=new Map();
+  await Promise.all(ms.map(async member=>{
+   try{
+    const h=await faceit('/players/'+encodeURIComponent(member.user_id)+'/history?game=cs2&offset=0&limit=100');
+    for(const x of h.items||[]){
+     if(!x.match_id)continue;
+     const id=String(x.match_id),e=historyMap.get(id)||{history:x,members:new Set()};
+     e.members.add(String(member.user_id));historyMap.set(id,e);
+    }
+   }catch(_){}
+  }));
+  const idsList=[...historyMap.keys()];
+  const details=await limitMap(idsList.slice(0,60),6,async id=>{
+   try{return {id,data:await faceit('/matches/'+encodeURIComponent(id))}}catch(_){return {id,data:null}}
+  });
+  const detailMap=new Map(details.map(x=>[x.id,x.data]).filter(x=>x[1]));
+  const out=idsList.slice(0,60).map(id=>{
+   const entry=historyMap.get(id),m=detailMap.get(id)||entry?.history;if(!m)return null;
+   const sides=Object.values(m.teams||{}),participants=[],participantIds=new Set(entry.members);
+   // Classification is based on how many AnonVC roster members actually have this match in their own FACEIT history.
+   const count=participantIds.size;
+   for(const uid of participantIds){const mm=ms.find(x=>String(x.user_id)===uid);if(mm)participants.push(mm.nickname)}
+   if(!count)return null;
+   const os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os);
+   const a=score(m,os),b=score(m,opp);
+   // FACEIT's results.winner can use a different key format; when a final score exists, score decides the result.
+   let won=null;
+   if(a!==null&&b!==null)won=a>b;
+   else won=winnerFor(m,os);
    const rosterOf=side=>(side?.roster||side?.players||[]).map(x=>x?.nickname||x?.game_player_name||'').filter(Boolean);
    const ourRoster=rosterOf(os),opponentRoster=rosterOf(opp);
    const ourTeam=os?.nickname||os?.name||'ANONVC',opponentTeam=opp?.nickname||opp?.name||'FACEIT MATCH';
    const winnerTeam=won===true?ourTeam:won===false?opponentTeam:null;
-   return{id:m.match_id,url:m.faceit_url,status:m.status,won,opponent:opponentTeam,ourTeam,opponentTeam,ourRoster,opponentRoster,winnerTeam,ourScore:a,opponentScore:b,date:m.finished_at?new Date(Number(m.finished_at)<100000000000?Number(m.finished_at)*1000:Number(m.finished_at)).toLocaleDateString('ru-RU'):'—',timestamp:m.finished_at||m.started_at||0,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',matchType:count===5?'TEAM':count>=2?'STACK':'SOLO',participantCount:count,participants,detailsLoaded:false};
-  }).filter(Boolean);
+   const finished=m.finished_at||m.started_at||entry.history.finished_at||entry.history.started_at||0;
+   return {id:m.match_id||id,url:m.faceit_url||entry.history.faceit_url,status:m.status||entry.history.status,won,opponent:opponentTeam,ourTeam,opponentTeam,ourRoster,opponentRoster,winnerTeam,ourScore:a,opponentScore:b,date:finished?new Date(Number(finished)<100000000000?Number(finished)*1000:Number(finished)).toLocaleDateString('ru-RU'):'—',timestamp:finished,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||entry.history.game_data?.map||'CS2',matchType:count===5?'TEAM':count>=2?'STACK':'SOLO',participantCount:count,participants,detailsLoaded:false};
+  }).filter(Boolean).sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0)).slice(0,30);
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
