@@ -51,7 +51,11 @@
 
 <section id="matches-page" class="section page">
   <div class="section-head"><div><small>ANONVC 2.0 / FACEIT FEED</small><h1>MATCHES</h1></div><span id="matchesState">LIVE API</span></div>
-  <div class="match-toolbar"><span id="matchCount">0 MATCHES</span><span>NEWEST FIRST</span></div>
+  <div class="match-toolbar"><div class="match-tabs" id="matchTabs">
+<button class="match-tab active" data-filter="TEAM">TEAM · 5/5</button>
+<button class="match-tab" data-filter="STACK">STACK · 2–4/5</button>
+<button class="match-tab" data-filter="SOLO">SOLO · 1/5</button>
+</div><span id="matchCount">0 MATCHES</span></div>
   <div id="allMatches" class="all-matches"></div>
 </section>
 
