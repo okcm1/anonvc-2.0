@@ -261,3 +261,18 @@
 .operator .presence-no_recent_activity{background:#4a5058!important;box-shadow:none!important}
 .operator .presence-unknown{background:#626872!important;box-shadow:none!important}
 .operator-footer b{font-size:9px!important;letter-spacing:1px!important}
+
+/* ANONVC LIVE MATCH CENTER — focused live HUD */
+.match-center{position:relative!important;overflow:hidden!important}
+.match-center:before{content:"LIVE";position:absolute;right:18px;top:48px;color:rgba(235,30,40,.055);font:800 86px/1 "Barlow Condensed";letter-spacing:2px;pointer-events:none}
+.match-center .match-head{position:relative!important;z-index:1!important;min-height:155px!important;align-items:center!important}
+.match-center .match-head>div:first-child,.match-center .match-head>.right{min-width:125px!important}
+.match-center .match-head strong{font-size:72px!important;line-height:.9!important}
+.match-center .versus{font-size:11px!important;font-weight:900!important;letter-spacing:2px!important;color:#5d646c!important}
+.match-center .mapline{position:relative!important;z-index:2!important;border-top:1px solid #292e35!important;border-bottom:1px solid #292e35!important;padding:12px 2px!important}
+.match-center .mapline span:first-child{font-weight:900!important;letter-spacing:1.5px!important}
+.match-center .match-note{margin-top:14px!important}
+.match-center .match-intel{margin-top:10px!important}
+.match-center #liveState{color:#ef313b!important}
+.match-center #liveState:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef313b;box-shadow:0 0 8px rgba(239,49,59,.8);margin-right:6px;vertical-align:1px}
+@media(max-width:900px){.match-center .match-head strong{font-size:58px!important}.match-center:before{font-size:64px}}
