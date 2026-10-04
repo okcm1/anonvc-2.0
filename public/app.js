@@ -14,7 +14,7 @@ var esc = function(s){
 };
 var safeUrl = function(s){
   var u=String(s||'').replace('/{lang}/','/ru/');
-  return /^https:\/\/www\.faceit\.com\/(?:ru\/)?(?:players|teams|matches)\//i.test(u) ? u : '#';
+  return /^https:\/\/www\.faceit\.com\/(?:ru\/)?(?:players|teams|matches)\//i.test(u) || /^https:\/\/www\.faceit\.com\/(?:ru\/)?cs2\/room\//i.test(u) ? u : '#';
 };
 var avatar = function(p){
   return p && p.avatar ? '<img class="avatar-img" src="'+esc(p.avatar)+'" alt="">' :
@@ -84,15 +84,58 @@ function resultClass(m){return m.won===true?'win':m.won===false?'loss':'unknown'
 function detailFor(m){return detailCache.get(m.id)||m;}
 function mvpHtml(m){
   var p=detailFor(m).mvp;
-  return p ? '<small class="mvp">MVP <b>'+esc(p.nickname)+'</b></small>' : '<small class="mvp">MVP —</small>';
+  return p ? '<small class="mvp">MVP <b>'+esc(p.nickname)+'</b> · '+(p.kills??'—')+'K / '+(p.deaths??'—')+'D</small>' : '<small class="mvp">MVP —</small>';
+}
+function intelPlayer(p,idx){
+  var kd=p&&p.kd!=null?Number(p.kd).toFixed(2):'—';
+  var adr=p&&p.adr!=null?Number(p.adr).toFixed(1):'—';
+  var rating=p&&p.rating!=null?Number(p.rating).toFixed(2):'—';
+  var clutch=p&&p.clutchRate!=null?Number(p.clutchRate).toFixed(1)+'%':'—';
+  return '<div class="intel-player">'+
+    '<span class="intel-rank">0'+(idx+1)+'</span>'+
+    '<b>'+esc(p&&p.nickname||'UNKNOWN')+'</b>'+
+    '<span><small>K/D</small>'+kd+'</span>'+
+    '<span><small>ADR</small>'+adr+'</span>'+
+    '<span><small>RATING</small>'+rating+'</span>'+
+    '<span><small>CLUTCH</small>'+clutch+'</span>'+
+  '</div>';
+}
+function rosterPlayer(p,idx){
+  return '<div class="opponent-player">'+
+    '<span class="intel-rank">0'+(idx+1)+'</span>'+
+    '<b>'+esc(p&&p.nickname||'UNKNOWN')+'</b>'+
+    '<span>LVL '+(p&&p.skillLevel!=null?p.skillLevel:'—')+'</span>'+
+  '</div>';
+}
+function expandedIntel(m,d){
+  if(!d||!d.detailsLoaded)return '';
+  var ours=d.players||[],opp=d.opponentPlayers||[],ourRoster=d.ourRoster||[],oppRoster=d.opponentRoster||[];
+  var ourRows=ours.length?ours.slice(0,5).map(intelPlayer).join(''):'<div class="intel-empty">СТАТИСТИКА ОЖИДАЕТСЯ</div>';
+  var oppRows=(opp.length?opp:oppRoster).slice(0,5).map(rosterPlayer).join('');
+  return '<div class="match-expanded">'+
+    '<div class="match-expanded-top">'+
+      '<div><small>MATCH INTEL</small><b>'+esc(d.map||m.map||'CS2')+'</b><span>'+esc(d.date||m.date||'—')+' · '+esc(String(d.status||m.status||'').toUpperCase())+'</span></div>'+
+      '<div class="expanded-score">'+(d.ourScore!=null?d.ourScore:'—')+' : '+(d.opponentScore!=null?d.opponentScore:'—')+'</div>'+
+      '<div><small>ROUNDS</small><b>'+(d.roundCount!=null?d.roundCount:'—')+'</b><span>'+esc(d.ourTeam||'ANONVC')+' vs '+esc(d.opponentTeam||d.opponent||'OPPONENT')+'</span></div>'+
+    '</div>'+
+    '<div class="match-expanded-grid">'+
+      '<section class="intel-section"><div class="intel-section-title">TEAM PERFORMANCE <i>ANONVC 5/5</i></div>'+ourRows+'</section>'+
+      '<section class="intel-section"><div class="intel-section-title">OPPONENT LINEUP <i>'+esc(d.opponentTeam||'OPPONENT')+'</i></div>'+oppRows+'</section>'+
+    '</div>'+
+    '<div class="match-expanded-footer"><span>STATUS <b>'+esc(String(d.status||m.status||'').toUpperCase())+'</b></span><span>MODE <b>'+esc(typeLabel(m))+'</b></span><span>MVP <b>'+esc(d.mvp?.nickname||'—')+'</b></span><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">OPEN FACEIT ↗</a></div>'+
+  '</div>';
 }
 function rowHtml(m){
   var d=detailFor(m);
   var score=d.ourScore!=null && d.opponentScore!=null ? d.ourScore+' : '+d.opponentScore : '— : —';
-  var detail=d.players && d.players.length ? '<div class="match-expanded"><div class="match-expanded-head">TEAM PERFORMANCE</div>'+
-    d.players.slice(0,5).map(function(p){return '<div class="player-line"><b>'+esc(p.nickname)+'</b><span>'+p.kills+'K / '+p.deaths+'D / '+p.assists+'A</span></div>';}).join('')+
-    '</div>' : '';
-  return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'"><span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span><div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(m.date)+'</small>'+mvpHtml(m)+'</div><div class="score">'+score+'</div><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a></div>'+detail+'</div>';
+  return '<div class="match-card'+(d.detailsLoaded?' open':'')+'">'+
+    '<div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
+      '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
+      '<div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(d.date||m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
+      '<div class="score">'+score+'</div>'+
+      '<a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
+    '</div>'+expandedIntel(m,d)+
+  '</div>';
 }
 function emptyHtml(){
   return '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no player matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
