@@ -195,6 +195,8 @@ app.get('/api/live-match',async(q,res)=>{
         timestamp:m.started_at||Date.now(),
         map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',
         matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',
+          // Any active match containing at least one AnonVC player is a LIVE MATCH CENTER event.
+          // Any active match containing at least one AnonVC player is a LIVE MATCH CENTER event.
         participantCount:participants.length,participants,live:true,manual:true,updatedAt:Date.now()
       };
       lastLiveMatch=payload;
