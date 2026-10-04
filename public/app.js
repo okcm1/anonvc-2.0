@@ -134,30 +134,31 @@ function renderMatches(matches){
   var mc=$('#matchCount'); if(mc) mc.textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
   var ms=$('#matchesState'); if(ms) ms.textContent=matchRows.length?'LIVE API':'NO FEED';
 
-  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
-  var last=live||teamRows[0];
+  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+  var last=live;
   if(last){
     var d=detailFor(last);
-    if($('#heroOurScore')) $('#heroOurScore').textContent=d.ourScore!=null?d.ourScore:'—';
-    if($('#heroOpponentScore')) $('#heroOpponentScore').textContent=d.opponentScore!=null?d.opponentScore:'—';
+    if($('#heroOurScore')) $('#heroOurScore').textContent=d.ourScore!=null?d.ourScore:'0';
+    if($('#heroOpponentScore')) $('#heroOpponentScore').textContent=d.opponentScore!=null?d.opponentScore:'0';
     if($('#heroOpponent')) $('#heroOpponent').textContent=d.opponent||last.opponent||'WAITING';
     if($('#heroMap')) $('#heroMap').textContent=d.map||last.map||'CS2';
     if($('#heroDate')) $('#heroDate').textContent=last.date||'—';
-    if($('#liveState')) $('#liveState').textContent=live?'LIVE MATCH':'FACEIT LINKED';
-    if($('#heroStatus')) $('#heroStatus').textContent=live?'LIVE MATCH':(last.won===true?'WIN':last.won===false?'LOSS':'LATEST RESULT');
+    if($('#liveState')) $('#liveState').textContent='LIVE MATCH';
+    if($('#heroStatus')) $('#heroStatus').textContent='LIVE';
     if($('#heroMode')) $('#heroMode').textContent=last.matchType==='TEAM'?'TEAM MATCH':last.matchType==='STACK'?'STACK MATCH':'SOLO MATCH';
     if($('#heroPlayers')) $('#heroPlayers').textContent=(last.participantCount||'?')+' / 5';
-    if($('#heroUpdated')) $('#heroUpdated').textContent=last.date||'—';
+    if($('#heroUpdated')) $('#heroUpdated').textContent='WAITING FOR LIVE SCORE';
   }else{
     if($('#heroOurScore')) $('#heroOurScore').textContent='—';
     if($('#heroOpponentScore')) $('#heroOpponentScore').textContent='—';
-    if($('#heroOpponent')) $('#heroOpponent').textContent='NO DATA';
-    if($('#heroMap')) $('#heroMap').textContent='NO MATCH LOADED';
+    if($('#heroOpponent')) $('#heroOpponent').textContent='WAITING FOR LIVE MATCH';
+    if($('#heroMap')) $('#heroMap').textContent='LIVE DATA PENDING';
     if($('#heroDate')) $('#heroDate').textContent='—';
-    if($('#heroStatus')) $('#heroStatus').textContent='NO DATA';
+    if($('#liveState')) $('#liveState').textContent='WAITING FOR LIVE';
+    if($('#heroStatus')) $('#heroStatus').textContent='WAITING';
     if($('#heroMode')) $('#heroMode').textContent='—';
     if($('#heroPlayers')) $('#heroPlayers').textContent='—';
-    if($('#heroUpdated')) $('#heroUpdated').textContent='—';
+    if($('#heroUpdated')) $('#heroUpdated').textContent='Historical results stay below';
   }
 
   if($('#nextOpponent')) $('#nextOpponent').textContent='—';
