@@ -110,21 +110,38 @@ app.get('/api/live-match',async(_q,res)=>{
   try{
     const team=await faceit('/teams/'+TEAM_ID);
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
-    const candidates=[...liveMatchIds.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
-    for(const matchId of candidates){
+    const candidates=new Map();
+    for(const [id,t] of liveMatchIds.entries()) candidates.set(id,t);
+
+    // Fallback: inspect the newest match for every roster player.
+    await Promise.all(ms.map(async member=>{
+      try{
+        const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=5');
+        for(const item of h.items||[]){
+          if(item.match_id)candidates.set(String(item.match_id),Date.now());
+        }
+      }catch(_){}
+    }));
+
+    const ordered=[...candidates.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+    for(const matchId of ordered.slice(0,12)){
       try{
         const m=await faceit('/matches/'+encodeURIComponent(matchId));
         const status=String(m.status||'').toLowerCase();
+        const active=['ongoing','started','in_progress','live','ready','configuring'].includes(status);
         if(['finished','cancelled','aborted'].includes(status)){liveMatchIds.delete(matchId);continue;}
+        if(!active)continue;
+
         const sides=Object.values(m.teams||{});
         const os=ourSide(m.teams,ids,names);
         const participants=[];
         for(const side of sides)for(const p of side.roster||side.players||[])if(ours(p,ids,names)){
-          const k=String(p.player_id||p.nickname||'').toLowerCase();
-          if(!participants.some(x=>String(x).toLowerCase()===k))participants.push(p.nickname||p.game_player_name);
+          const key=String(p.player_id||p.nickname||'').toLowerCase();
+          if(!participants.some(x=>String(x).toLowerCase()===key))participants.push(p.nickname||p.game_player_name);
         }
         if(!participants.length)continue;
-        const opp=sides.find(s=>s!==os);
+
+        const opp=sides.find(side=>side!==os);
         const a=score(m,os),b=score(m,opp);
         return res.json({
           id:m.match_id,url:m.faceit_url,status,
@@ -141,7 +158,6 @@ app.get('/api/live-match',async(_q,res)=>{
     res.json(null);
   }catch(e){res.status(503).json({error:e.message})}
 });
-
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
 app.get('/api/team',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID))}catch(e){res.status(503).json({error:e.message})}});
 app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID+'/stats/cs2'))}catch(e){res.status(503).json({error:e.message})}});
