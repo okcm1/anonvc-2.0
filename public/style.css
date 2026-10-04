@@ -400,3 +400,47 @@ footer{
   .match-intel>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
   #roster .roster-card{min-height:500px}
 }
+
+
+/* ANONVC 2.2 — SOFT CORNERS
+   Rounded panels/cards without losing the sharp tactical identity. */
+.panel,
+.match-card,
+.roster-card,
+.analytics-card,
+.stats-overview .panel,
+.stats-performance-panel,
+.stats-table-panel,
+.stats-id,
+.about-grid .panel,
+.match-tab,
+.faceit-btn {
+  border-radius: 12px;
+}
+.panel,
+.match-card,
+.roster-card,
+.analytics-card {
+  overflow: hidden;
+}
+.avatar,
+.player-stat-avatar,
+#roster .roster-photo .avatar {
+  border-radius: 10px;
+}
+.match-tab {
+  border-radius: 8px;
+}
+.faceit-btn {
+  border-radius: 8px;
+}
+.show-all-matches {
+  border-radius: 0 0 10px 10px;
+}
+#roster .roster-card {
+  border-radius: 14px;
+}
+#roster .roster-metrics {
+  overflow: hidden;
+  border-radius: 8px;
+}
