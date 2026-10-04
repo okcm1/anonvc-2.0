@@ -17,7 +17,7 @@
     var q=(search&&search.value||'').toLowerCase().trim();
     var mode=sort&&sort.value||'default';
     var cards=Array.from(grid.querySelectorAll('.roster-card'));
-    cards.forEach(function(card){
+    cards.forEach(function(card,i){if(card.dataset.rosterOrder==null)card.dataset.rosterOrder=String(i);
       var nick=card.dataset.player||'';
       var role=(card.querySelector('.roster-identity p')||{}).textContent||'';
       card.classList.toggle('is-hidden',!!q && (nick+' '+role).toLowerCase().indexOf(q)<0);
@@ -31,7 +31,7 @@
         return bv-av || cards.indexOf(a)-cards.indexOf(b);
       });
     }else{
-      ordered.sort(function(a,b){return cards.indexOf(a)-cards.indexOf(b);});
+      ordered.sort(function(a,b){return Number(a.dataset.rosterOrder)-Number(b.dataset.rosterOrder);});
     }
     /* One DOM write per ordered card, with observer disconnected by caller. */
     var frag=document.createDocumentFragment();
