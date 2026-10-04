@@ -39,13 +39,14 @@ function renderRosterPerformance(stats){
     var box=card.querySelector('.roster-metrics');
     if(!box)return;
     if(!s||!s.matches){
-      box.innerHTML='<div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div>';
+      box.innerHTML='<div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>AVG</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div>';
       return;
     }
     box.innerHTML='<div><small>MATCHES</small><b>'+s.matches+'</b></div>'+
       '<div><small>K/D</small><b>'+(s.kd==null?'—':s.kd.toFixed(2))+'</b></div>'+
       '<div><small>ADR</small><b>'+(s.adr==null?'—':s.adr.toFixed(1))+'</b></div>'+
       '<div><small>CLUTCH</small><b>'+(s.clutchRate==null?'—':s.clutchRate.toFixed(1)+'%')+'</b></div>'+
+      '<div><small>AVG</small><b>'+(s.avgKills==null?'—':s.avgKills.toFixed(1))+'</b></div>'+
       '<div><small>WINRATE</small><b>'+(s.winRate==null?'—':s.winRate.toFixed(1)+'%')+'</b></div>';
   });
 }
