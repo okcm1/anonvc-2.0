@@ -6,7 +6,7 @@ const FALLBACK=[
 {nickname:'zerox252',role:'Entry Fragger',faceitUrl:'https://www.faceit.com/ru/players/zerox252'}];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const safeUrl=s=>{const u=String(s||'').replace('/{lang}/','/ru/');return /^https:\/\/www\.faceit\.com\/(?:ru\/)?(?:players|teams)\//i.test(u)?u:'#'};
+const safeUrl=s=>{const u=String(s||'').replace('/{lang}/','/ru/');return /^https:\/\/www\.faceit\.com\/(?:ru\/)?(?:players|teams|matches)\//i.test(u)?u:'#'};
 const avatar=p=>p.avatar?'<img class="avatar-img" src="'+esc(p.avatar)+'" alt="">':esc(p.nickname?.[0]?.toUpperCase()||'?');
 const mergedPlayers=ps=>FALLBACK.map(f=>({...f,...(ps||[]).find(p=>p.nickname===f.nickname)}));
 function renderPlayers(players){
@@ -90,7 +90,7 @@ function renderMatches(matches){
  });
 }
 async function loadDetails(rows){
- const todo=rows.filter(m=>m.matchType==='TEAM'&&!detailCache.has(m.id)&&!detailLoading.has(m.id));
+ const todo=rows.filter(m=>!detailCache.has(m.id)&&!detailLoading.has(m.id));
  todo.forEach(m=>detailLoading.add(m.id));
  for(let i=0;i<todo.length;i+=3){
   const batch=todo.slice(i,i+3);
