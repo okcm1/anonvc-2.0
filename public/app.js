@@ -115,7 +115,7 @@ function renderAdvancedStats(team){
   if($('#avgAdr'))$('#avgAdr').textContent=avgAdr==null?'—':avgAdr.toFixed(1);
   if($('#topFragger'))$('#topFragger').textContent=top?top.nickname:'—';
   if($('#topFraggerMeta'))$('#topFraggerMeta').textContent=top?(top.kills+' K / '+top.deaths+' D / '+top.assists+' A'):'WAITING FOR MATCH DATA';
-  var sf=$('#statsForm');if(sf)sf.innerHTML=team.slice(0,10).map(function(m){var d=detailFor(m),c=d.won===true?'win':d.won===false?'loss':'unknown';return '<span class="'+c+'" title="'+esc((d.ourScore||'—')+' : '+(d.opponentScore||'—'))+'"></span>';}).join('');
+  var sf=$('#statsForm');if(sf)sf.innerHTML=team.slice(0,10).map(function(m){var d=detailFor(m),c=d.won===true?'win':d.won===false?'loss':'unknown',label=d.won===true?'W':d.won===false?'L':'—';return '<span class="'+c+'" title="'+esc((d.ourScore||'—')+' : '+(d.opponentScore||'—'))+'">'+label+'</span>';}).join('');
   var tp=$('#teamPerformance');if(tp){var rows=Object.values(by).sort(function(a,b){return b.kills-a.kills;});tp.innerHTML=rows.length?rows.map(function(p,i){var kd=p.deaths?p.kills/p.deaths:p.kills,adr=p.adrN?p.adr/p.adrN:null;return '<div class="team-perf-row"><span class="perf-rank">0'+(i+1)+'</span><b>'+esc(p.nickname)+'</b><span><small>K/D</small>'+kd.toFixed(2)+'</span><span><small>ADR</small>'+(adr==null?'—':adr.toFixed(1))+'</span><span><small>KILLS</small>'+p.kills+'</span><span><small>ASSISTS</small>'+p.assists+'</span></div>';}).join(''):'<div class="team-perf-empty">LOAD TEAM MATCH DETAILS TO BUILD PERFORMANCE</div>';}
 }
 
@@ -187,7 +187,7 @@ function renderMatches(matches){
   var dots=$('#formDots');
   if(dots) dots.innerHTML=Array.from({length:10},function(_,i){
     var x=team[i], c=!x?'unknown':detailFor(x).won===true?'win':detailFor(x).won===false?'loss':'unknown';
-    return '<span class="'+c+'"></span>';
+    var label=c==='win'?'W':c==='loss'?'L':'—'; return '<span class="'+c+'">'+label+'</span>';
   }).join('');
 
   document.querySelectorAll('.show-all-matches').forEach(function(b){
