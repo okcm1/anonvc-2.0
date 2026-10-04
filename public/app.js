@@ -94,6 +94,7 @@ function rowHtml(m){
   var opponentTeam=d.opponentTeam||d.opponent||m.opponent||'FACEIT MATCH';
   var winner=d.winnerTeam||(d.won===true?ourTeam:d.won===false?opponentTeam:'');
   var resultText=winner?(winner===ourTeam?'ANONVC WIN':'OPPONENT WIN'):'RESULT PENDING';
+  var winnerClass=d.won===true?'win':d.won===false?'loss':'unknown';
   var oppRoster=Array.isArray(d.opponentRoster)?d.opponentRoster:[];
   var rosterText=oppRoster.length?oppRoster.map(function(p){return '<span>'+esc(p)+'</span>';}).join(''):'<span>ROSTER DATA PENDING</span>';
   var detail=d.players && d.players.length ? '<div class="match-expanded"><div class="match-expanded-head">TEAM PERFORMANCE</div>'+
@@ -104,7 +105,7 @@ function rowHtml(m){
     '<div class="match-main-info"><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.map||m.map||'CS2')+' · '+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
     '<div class="match-scoreboard">'+
       '<div class="score-teams"><span class="score-team our">'+esc(ourTeam)+'</span><b>'+score+'</b><span class="score-team opponent">'+esc(opponentTeam)+'</span></div>'+
-      '<small class="score-winner">'+esc(resultText)+'</small>'+
+      '<small class="score-winner '+winnerClass+'">'+esc(resultText)+'</small>'+
       '<div class="opponent-roster"><span class="roster-label">OPPONENT ROSTER</span>'+rosterText+'</div>'+
     '</div>'+
     '<a class="match-faceit-link" href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
