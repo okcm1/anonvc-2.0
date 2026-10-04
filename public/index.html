@@ -67,6 +67,16 @@
     <div class="panel"><div class="panel-title"><span>GAMES</span><i>TOTAL</i></div><strong id="statsGames" class="stat-number">—</strong><small>RETURNED BY API</small></div>
     <div class="panel"><div class="panel-title"><span>DATA PIPE</span><i>SERVER SIDE</i></div><strong id="statsStatus">CONNECTING...</strong><small>API KEY NEVER REACHES THE BROWSER</small></div>
   </div>
+  <div class="stats-analytics">
+    <div class="panel analytics-card"><div class="panel-title"><span>AVG KILLS</span><i>TEAM MATCHES</i></div><strong id="avgKills" class="stat-number">—</strong><small>PER OPERATOR / MATCH</small></div>
+    <div class="panel analytics-card"><div class="panel-title"><span>AVG ADR</span><i>TEAM MATCHES</i></div><strong id="avgAdr" class="stat-number">—</strong><small>DAMAGE PER ROUND</small></div>
+    <div class="panel analytics-card"><div class="panel-title"><span>TOP FRAGGER</span><i>RECENT FORM</i></div><strong id="topFragger" class="stat-text">—</strong><small id="topFraggerMeta">WAITING FOR MATCH DATA</small></div>
+    <div class="panel analytics-card"><div class="panel-title"><span>FORM</span><i>LAST 10 TEAM</i></div><div id="statsForm" class="stats-form"></div><small>NEWEST → OLDEST</small></div>
+  </div>
+  <div class="panel stats-performance-panel">
+    <div class="panel-title"><span>TEAM PERFORMANCE</span><i>RECENT TEAM MATCHES</i></div>
+    <div id="teamPerformance" class="team-performance"></div>
+  </div>
   <div class="panel stats-table-panel">
     <div class="panel-title"><span>OPERATOR RANKING</span><i>LEVEL / ELO</i></div>
     <div id="playerStats" class="player-stats"></div>
