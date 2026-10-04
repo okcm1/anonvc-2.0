@@ -175,8 +175,6 @@ app.get('/api/live-match',async(q,res)=>{
       return res.json(payload);
     }
     
-    const team=await faceit('/teams/'+TEAM_ID);
-    const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
     const candidates=new Map();
     for(const [id,t] of liveMatchIds.entries()) candidates.set(id,t);
 
