@@ -102,6 +102,15 @@
         '<div class="profile-metric"><small>WIN RATE</small><b>'+val(s.winRate!=null?s.winRate.toFixed(1)+'%':null)+'</b></div>'+
         '<div class="profile-metric"><small>MATCHES PLAYED</small><b>'+val(s.matches)+'</b></div>'+
       '</div>'+
+      '<div class="profile-section-label">RAW SAMPLE // 30 MATCHES</div>'+
+      '<div class="profile-grid">'+
+        '<div class="profile-metric"><small>TOTAL KILLS</small><b>'+val(s.totalKills)+'</b></div>'+
+        '<div class="profile-metric"><small>TOTAL DEATHS</small><b>'+val(s.totalDeaths)+'</b></div>'+
+        '<div class="profile-metric"><small>TOTAL ASSISTS</small><b>'+val(s.totalAssists)+'</b></div>'+
+        '<div class="profile-metric"><small>HEADSHOT %</small><b>'+val(s.headshotRate!=null?s.headshotRate.toFixed(1)+'%':null)+'</b></div>'+
+        '<div class="profile-metric"><small>FIRST KILLS</small><b>'+val(s.firstKills)+'</b></div>'+
+        '<div class="profile-metric"><small>FIRST DEATHS</small><b>'+val(s.firstDeaths)+'</b></div>'+
+      '</div>'+
       '<div class="profile-footer-note">STATISTICS ARE CALCULATED FROM THE CURRENT FACEIT DATA SAMPLE. TEAM / STACK / SOLO MATCHES ARE KEPT SEPARATE IN ANONVC MATCH CLASSIFICATION.</div>'+
       '<div class="profile-actions">'+
         (face?'<a href="'+escF(face.href)+'" target="_blank" rel="noopener">OPEN FACEIT ↗</a>':'')+
