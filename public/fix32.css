@@ -249,3 +249,15 @@
   .opponent-side>strong{font-size:20px}
   .match-faceit-link{display:none!important}
 }
+
+/* ANONVC roster presence polish */
+.operator{position:relative!important;display:grid!important;grid-template-columns:48px minmax(0,1fr) auto!important;align-items:center!important;min-height:76px!important;padding:10px 14px!important;gap:12px!important}
+.operator>div:nth-child(2){min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+.operator .presence-status{order:3!important;margin-top:5px!important;display:flex!important;align-items:center!important;gap:6px!important;color:#777d85!important;font:800 8px/1 Inter,sans-serif!important;letter-spacing:1px!important;text-transform:uppercase!important}
+.operator .presence-dot{width:6px!important;height:6px!important;flex:0 0 6px!important}
+.operator.is-in-match{background:linear-gradient(90deg,rgba(220,25,35,.08),transparent)!important;border-left-color:#e51f2a!important}
+.operator .presence-in_match{background:#f52b35!important;box-shadow:0 0 8px rgba(245,43,53,.7)!important}
+.operator .presence-recently_active{background:#b47a21!important;box-shadow:none!important}
+.operator .presence-no_recent_activity{background:#4a5058!important;box-shadow:none!important}
+.operator .presence-unknown{background:#626872!important;box-shadow:none!important}
+.operator-footer b{font-size:9px!important;letter-spacing:1px!important}
