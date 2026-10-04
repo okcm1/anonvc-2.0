@@ -639,3 +639,17 @@ body .page:after{
 @media(prefers-reduced-motion:reduce){
   .topbar:after,.match-head:after{animation:none}
 }
+
+@media(max-width:760px){
+  .match-expanded-top{grid-template-columns:1fr 90px 1fr;gap:8px;padding:14px 10px}
+  .match-expanded-top b{font-size:18px}
+  .expanded-score{font-size:30px}
+  .match-expanded-grid{grid-template-columns:1fr}
+  .intel-section+.intel-section{border-left:0;border-top:1px solid var(--line)}
+  .intel-player{grid-template-columns:22px 1fr 55px 55px;gap:6px;padding:0 10px}
+  .intel-player>span:nth-last-child(-n+2){display:none}
+  .opponent-player{grid-template-columns:22px 1fr 55px;padding:0 10px}
+  .match-expanded-footer{gap:10px;flex-wrap:wrap;padding:10px}
+  .match-expanded-footer a{margin-left:0;width:100%}
+  .match-row-detail:after{display:none}
+}
