@@ -16,6 +16,20 @@ async function faceit(endpoint){
   }
   return r.json();
 }
+const publicFaceitMatch=async(id)=>{
+  const raw=String(id||'').trim();
+  const ids=raw.startsWith('1-')?[raw]:['1-'+raw,raw];
+  for(const matchId of ids){
+    try{
+      const rr=await fetch('https://api.faceit.com/match/v2/match/'+encodeURIComponent(matchId),{headers:{Accept:'application/json','User-Agent':'AnonVC-2.0/1.0'}});
+      if(!rr.ok)continue;
+      const j=await rr.json();
+      if(j?.payload)return j.payload;
+    }catch(_){ }
+  }
+  return null;
+};
+
 const playerUrl=n=>'https://www.faceit.com/ru/players/'+encodeURIComponent(n);
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
 const val=(s,ks)=>{for(const k of ks)if(s?.[k]!==undefined&&s[k]!==null&&s[k]!=='')return num(s[k]);return null};
@@ -147,13 +161,11 @@ app.get('/api/live-match',async(q,res)=>{
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
     if(manualId){
       let m=null;
-      try{
-        m=await faceit('/matches/'+encodeURIComponent(manualId));
-      }catch(e){
-        // A FACEIT room id can become unavailable through Data API.
-        // Fall back to roster-player history instead of breaking live feed.
-        if(e?.status!==404) throw e;
+      const manualIds=manualId.startsWith('1-')?[manualId,['1-'+manualId,manualId][0]]:['1-'+manualId,manualId];
+      for(const tryId of [...new Set(manualIds)]){
+        try{m=await faceit('/matches/'+encodeURIComponent(tryId));if(m)break;}catch(e){if(e?.status!==404)throw e;}
       }
+      if(!m)m=await publicFaceitMatch(manualId);
       if(!m){
         // continue into automatic discovery below
       } else {
