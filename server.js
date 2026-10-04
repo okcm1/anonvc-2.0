@@ -208,7 +208,8 @@ app.get('/api/roster-stats',async(_q,res)=>{
   }
 
   const out=memberData.map(({member,stats})=>{
-    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0;
+    let wins=0,knownResults=0,kills=0,deaths=0,assists=0,headshots=0,firstKills=0,firstDeaths=0,rounds=0;
+    let adrSum=0,adrCount=0,kdSum=0,kdCount=0,hsRateSum=0,hsRateCount=0;
     stats.forEach(st=>{
       const rawResult=st?.Result ?? st?.result ?? null;
       if(rawResult!==null&&rawResult!==''){
@@ -216,27 +217,34 @@ app.get('/api/roster-stats',async(_q,res)=>{
         const r=String(rawResult).toLowerCase();
         if(rawResult===1||r==='1'||r==='win'||r==='won'||r==='victory')wins++;
       }
-      const k=val(st,['Kills','kills','K']),d=val(st,['Deaths','deaths','D']);
+      const k=val(st,['Kills','kills','K']),d=val(st,['Deaths','deaths','D']),a=val(st,['Assists','assists','A']);
+      const hs=val(st,['Headshots','headshots','HS']);
+      const hsPct=val(st,['Headshots %','Headshot %','headshot_percent','Headshot Percentage']);
+      const fk=val(st,['First Kills','First kills','first_kills','First Kill']);
+      const fd=val(st,['First Deaths','First deaths','first_deaths','First Death']);
+      const rds=val(st,['Rounds','rounds','Rounds Played','rounds_played']);
       const directKd=val(st,['K/D','K/D Ratio','K/D ratio','KD','kd','Average K/D','Average K/D Ratio']);
       const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-      if(k!==null)kills+=k;
-      if(d!==null)deaths+=d;
+      if(k!==null)kills+=k;if(d!==null)deaths+=d;if(a!==null)assists+=a;
+      if(hs!==null)headshots+=hs;if(fk!==null)firstKills+=fk;if(fd!==null)firstDeaths+=fd;if(rds!==null)rounds+=rds;
       const matchKd=directKd!==null?directKd:(k!==null&&d!==null&&d>0?k/d:null);
       if(matchKd!==null){kdSum+=matchKd;kdCount++;}
       if(adr!==null){adrSum+=adr;adrCount++;}
+      if(hsPct!==null){hsRateSum+=hsPct;hsRateCount++;}
     });
     const cl=clutchByPlayer.get(String(member.user_id))||{attempts:0,wins:0};
+    const calculatedHsRate=hsRateCount?hsRateSum/hsRateCount:(kills?headshots/kills*100:null);
     return {
-      nickname:member.nickname,
-      matches:stats.length,
-      wins,
+      nickname:member.nickname,matches:stats.length,wins,
       winRate:knownResults?Math.round(wins/knownResults*1000)/10:null,
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
       clutchRate:cl.attempts?Math.round(cl.wins/cl.attempts*1000)/10:null,
-      clutchAttempts:cl.attempts,
-      clutchWins:cl.wins,
-      avgKills:stats.length?Math.round(kills/stats.length*100)/100:null
+      clutchAttempts:cl.attempts,clutchWins:cl.wins,
+      avgKills:stats.length?Math.round(kills/stats.length*100)/100:null,
+      totalKills:kills,totalDeaths:deaths,totalAssists:assists,totalHeadshots:headshots,
+      headshotRate:calculatedHsRate==null?null:Math.round(calculatedHsRate*10)/10,
+      firstKills,firstDeaths,rounds
     };
   });
   rosterStatsCache=out;rosterStatsCacheAt=Date.now();
