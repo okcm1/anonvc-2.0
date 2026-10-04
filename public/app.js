@@ -14,7 +14,7 @@ var esc = function(s){
 };
 var safeUrl = function(s){
   var u=String(s||'').replace('/{lang}/','/ru/');
-  return /^https:\/\/www\.faceit\.com\/(?:ru\/)?(?:players|teams|matches)\//i.test(u) ? u : '#';
+  return /^https:\/\/www\.faceit\.com\//i.test(u) ? u : '#';
 };
 var avatar = function(p){
   return p && p.avatar ? '<img class="avatar-img" src="'+esc(p.avatar)+'" alt="">' :
