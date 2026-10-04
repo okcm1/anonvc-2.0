@@ -17,7 +17,24 @@ const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
 const val=(s,ks)=>{for(const k of ks)if(s?.[k]!==undefined&&s[k]!==null&&s[k]!=='')return num(s[k]);return null};
 const ours=(p,ids,names)=>{const id=String(p?.player_id||''),n=String(p?.nickname||p?.game_player_name||'').toLowerCase();return(ids.has(id)||names.has(n))};
 const ourSide=(teams,ids,names)=>Object.values(teams||{}).find(s=>(s.players||s.roster||[]).some(p=>ours(p,ids,names)));
-const score=(m,s)=>s?.team_id&&m?.results?.score?.[s.team_id]!=null?num(m.results.score[s.team_id]):null;
+const sideEntries=teams=>Object.entries(teams||{});
+const sideKey=(teams,side)=>sideEntry=>sideEntry?.[1]===side;
+const score=(m,s)=>{
+  const scores=m?.results?.score||{};
+  if(!s)return null;
+  if(s.team_id&&scores[s.team_id]!=null)return num(scores[s.team_id]);
+  const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
+  if(entry&&scores[entry[0]]!=null)return num(scores[entry[0]]);
+  const vals=Object.values(scores).map(num).filter(v=>v!==null);
+  return vals.length===2&&entry?num(scores[entry[0]]):null;
+};
+const winnerFor=(m,s)=>{
+  if(!s)return null;
+  if(m?.results?.winner&&s.team_id)return m.results.winner===s.team_id;
+  const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
+  if(entry&&m?.results?.winner)return m.results.winner===entry[0];
+  return null;
+};
 
 app.use(express.static(path.join(__dirname,'public')));
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
@@ -46,7 +63,7 @@ app.get('/api/matches',async(_q,res)=>{
    if(!participants.length)for(const id of m.playing_players||[]){const mm=ms.find(x=>String(x.user_id)===String(id));if(mm)participants.push(mm.nickname)}
    const count=participants.length;if(!count)return null;
    const os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os),a=score(m,os),b=score(m,opp);
-   let won=null;if(os?.team_id&&m.results?.winner)won=m.results.winner===os.team_id;else if(a!==null&&b!==null)won=a>b;
+   let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
    return{id:m.match_id,url:m.faceit_url,status:m.status,won,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,date:m.finished_at?new Date(m.finished_at).toLocaleDateString('ru-RU'):'—',timestamp:m.finished_at||m.started_at||0,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',matchType:count===5?'TEAM':count>=2?'STACK':'SOLO',participantCount:count,participants,detailsLoaded:false};
   }).filter(Boolean);
   res.json(out);
@@ -65,7 +82,7 @@ app.get('/api/match/:id/summary',async(req,res)=>{
    if(kls!==null)e.kills+=kls;if(d!==null)e.deaths+=d;if(as!==null)e.assists+=as;if(rt!==null){e.rt+=rt;e.rc++}sm.set(k,e);
   }
   const players=[...sm.values()].map(x=>({...x,rating:x.rc?x.rt/x.rc:null,kd:x.deaths?x.kills/x.deaths:x.kills})).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills||y.kd-x.kd);
-  const won=os?.team_id&&m.results?.winner?m.results.winner===os.team_id:a!==null&&b!==null?a>b:null;
+  let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
   res.json({id:m.match_id,status:m.status,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,won,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',mvp:players[0]||null,players,detailsLoaded:true});
  }catch(e){res.status(503).json({error:e.message})}
 });
