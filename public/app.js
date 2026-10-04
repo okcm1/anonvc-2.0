@@ -256,6 +256,7 @@ async function pollLiveFeed(){
     var live=await getJson('/api/live-match').catch(function(){return null;});
     if(live){renderLiveMatch(live);}
     var fresh=await getJson('/api/matches');
+    if(live){ return; }
     if(Array.isArray(fresh)){
       var oldIds=new Set(matchRows.map(function(x){return x.id;}));
       var newLive=fresh.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
