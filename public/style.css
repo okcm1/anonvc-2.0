@@ -89,3 +89,27 @@
 @media(max-width:600px){.stats-analytics{grid-template-columns:1fr}.team-perf-row{grid-template-columns:28px 1fr 65px 65px}.team-perf-row span:nth-last-child(-n+2){display:none}}
 
 #roster .roster-metrics{grid-template-columns:repeat(3,1fr)!important}#roster .roster-metrics div{min-height:72px;display:flex;flex-direction:column;justify-content:center;padding:10px 8px;text-align:left}#roster .roster-metrics div:nth-child(3n){border-right:0}#roster .roster-metrics div:last-child{grid-column:1/-1;border-right:0;text-align:left}
+
+/* ROSTER — balanced stat layout */
+#roster .roster-card{min-height:600px}
+#roster .roster-metrics{
+  grid-template-columns:repeat(2,1fr)!important;
+  margin-top:auto;
+}
+#roster .roster-metrics div{
+  min-height:76px;
+  padding:14px 12px;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+#roster .roster-metrics div:nth-child(2n){border-right:0}
+#roster .roster-metrics div:last-child{
+  grid-column:1/-1;
+  border-right:0;
+  min-height:70px;
+}
+#roster .roster-metrics small{font-size:7px;margin-bottom:7px}
+#roster .roster-metrics b{font-size:26px}
+#roster .roster-link{margin-top:0!important;padding-top:15px!important}
+@media(max-width:1050px){#roster .roster-card{min-height:560px}}
+@media(max-width:720px){#roster .roster-card{min-height:500px}}
