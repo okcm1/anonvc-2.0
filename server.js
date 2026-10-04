@@ -12,7 +12,7 @@ const faceitCache = new Map();
 const faceitInflight = new Map();
 let faceitQueue = Promise.resolve();
 let lastFaceitRequest = 0;
-const FACEIT_CACHE_CACHE_TTL = 30000;
+const FACEIT_CACHE_CACHE_TTL = 60000;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function faceit(endpoint) {
   if (!KEY || KEY.includes('PASTE_YOUR')) throw new Error('FACEIT_API_KEY is not configured');
@@ -62,15 +62,16 @@ app.get('/api/players', async (_req, res) => {
   try {
     const team = await faceit(`/teams/${TEAM_ID}`);
     const members = team.members || [];
+
+    // Team membership already contains the public roster data in most cases.
+    // Use it first so avatars render even when individual player calls are rate-limited.
     const players = await Promise.all(members.map(async member => {
       let details = {};
-      try {
-        details = await faceit(`/players/${member.user_id}`);
-      } catch (_) {
-        // Some team members can fail by user_id; retry through nickname lookup.
+      const hasCoreData = member.avatar && (member.skill_level != null || member.faceit_elo != null);
+
+      if (!hasCoreData) {
         try {
-          const lookup = await faceit(`/players?nickname=${encodeURIComponent(member.nickname)}&game=cs2`);
-          details = lookup?.items?.[0] || {};
+          details = await faceit(`/players/${member.user_id}`);
         } catch (_) {}
       }
 
@@ -88,10 +89,12 @@ app.get('/api/players', async (_req, res) => {
         elo: cs2.faceit_elo ?? member.faceit_elo ?? null
       };
     }));
-    res.json(players);
-  } catch (e) { res.status(503).json({ error: e.message }); }
-});
 
+    res.json(players);
+  } catch (e) {
+    res.status(503).json({ error: e.message });
+  }
+});
 app.get('/api/matches', async (_req, res) => {
   try {
     const team = await faceit(`/teams/${TEAM_ID}`);
