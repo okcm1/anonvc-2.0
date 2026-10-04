@@ -18,3 +18,10 @@
 @media(max-width:900px){.match-intel{grid-template-columns:repeat(2,1fr)}.match-intel>div:nth-child(2){border-right:0}.match-intel>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
 
 .operators{align-self:start}.form{align-self:start}
+.roster-metrics{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:10px}
+.roster-metrics div{text-align:center;padding:8px 3px;border-right:1px solid var(--line)}
+.roster-metrics div:last-child{border-right:0}
+.roster-metrics small{display:block;color:#626871;font-size:7px;letter-spacing:.7px;margin-bottom:3px}
+.roster-metrics b{font-family:"Barlow Condensed";font-size:16px;line-height:1}
+.roster-card a{margin-top:9px}
+@media(max-width:720px){.roster-metrics small{font-size:6px}.roster-metrics b{font-size:14px}}
