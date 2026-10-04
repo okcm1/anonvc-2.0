@@ -86,93 +86,60 @@ app.get('/api/roster-stats',async(_q,res)=>{
  try{
   if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const histories=await Promise.all(members.map(async member=>{
-    let history={items:[]},stats={items:[]};
-    try{history=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=20');}catch(_){}
-    try{stats=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=20');}catch(_){}
-    return {member,history:(history.items||[]).filter(x=>x.match_id).slice(0,20),stats:stats.items||[]};
-  }));
+  const out=await Promise.all(members.map(async member=>{
+    let stats=[];
+    try{
+      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=20');
+      stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
+    }catch(_){stats=[];}
 
-  const matchIds=new Set();
-  histories.forEach(h=>h.history.forEach(x=>matchIds.add(x.match_id)));
-  const matchStats=new Map();
-  const ids=[...matchIds]; let cursor=0;
-  const worker=async()=>{
-    while(cursor<ids.length){
-      const id=ids[cursor++];
-      try{matchStats.set(id,await faceit('/matches/'+encodeURIComponent(id)+'/stats'));}catch(_){}
-    }
-  };
-  await Promise.all([worker(),worker(),worker(),worker()]);
+    // FACEIT's player-stats endpoint is explicitly "a given amount of matches".
+    // Sort by match-finished timestamp so these are the actual latest 20.
+    const finishedAt=s=>Number(
+      s?.['Match Finished At'] ??
+      s?.['match_finished_at'] ??
+      s?.['Match Finished At Timestamp'] ??
+      0
+    );
+    stats.sort((a,b)=>finishedAt(b)-finishedAt(a));
+    const recent=stats.slice(0,20);
 
-  const out=histories.map(h=>{
-    const playerId=String(h.member.user_id||''), nickname=String(h.member.nickname||'');
-    let wins=0,knownResults=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,killsSum=0,killsCount=0,clutchAttempts=0,clutchWins=0;
-
-    const wonFor=function(item){
-      const teams=Object.entries(item.teams||{});
-      const mine=teams.find(e=>(e[1]?.players||e[1]?.roster||[]).some(p=>
-        String(p.player_id||'')===playerId ||
-        String(p.nickname||p.game_player_name||'').toLowerCase()===nickname.toLowerCase()
-      ));
-      const winner=item.results?.winner;
-      if(winner&&mine){
-        const side=mine[1]||{};
-        if(String(winner)===String(mine[0])||String(winner)===String(side.team_id||'')||String(winner)===String(side.faction_id||''))return true;
+    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0;
+    recent.forEach(st=>{
+      const result=val(st,['Result','result']);
+      if(result!==null){
+        knownResults++;
+        if(result===1)wins++;
       }
-      if(mine&&item.results?.score){
-        const a=Number(item.results.score[mine[0]]);
-        const other=teams.find(e=>e[0]!==mine[0]&&Number.isFinite(Number(item.results.score[e[0]])));
-        if(Number.isFinite(a)&&other)return a>Number(item.results.score[other[0]]);
-      }
-      return null;
-    };
-
-    h.history.forEach(item=>{const w=wonFor(item);if(w!==null){knownResults++;if(w)wins++;}});
-
-    h.stats.forEach(item=>{
-      const st=item.stats||item||{};
-      const kd=val(st,['K/D Ratio','K/D','KD','kd_ratio']);
+      const k=val(st,['Kills','kills','K']);
+      const d=val(st,['Deaths','deaths','D']);
       const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-      if(kd!==null){kdSum+=kd;kdCount++;}
+      if(k!==null)kills+=k;
+      if(d!==null)deaths+=d;
       if(adr!==null){adrSum+=adr;adrCount++;}
-    });
-
-    h.history.forEach(item=>{
-      const st=matchStats.get(item.match_id);
-      if(!st)return;
-      for(const round of st.rounds||[]){
-        for(const side of round.teams||[]){
-          for(const p of side.players||[]){
-            if(String(p.player_id||'')!==playerId && String(p.nickname||p.game_player_name||'').toLowerCase()!==nickname.toLowerCase())continue;
-            const ps=p.player_stats||p.stats||p;
-            const k=val(ps,['Kills','kills','K']);
-            if(k!==null){killsSum+=k;killsCount++;}
-            const cl=clutchStats(ps);
-            clutchAttempts+=cl.attempts;
-            clutchWins+=cl.wins;
-          }
-        }
-      }
+      const cl=clutchStats(st);
+      clutchAttempts+=cl.attempts;
+      clutchWins+=cl.wins;
     });
 
     return {
-      nickname,
-      matches:h.history.length,
+      nickname:member.nickname,
+      matches:recent.length,
       wins,
       winRate:knownResults?Math.round(wins/knownResults*1000)/10:null,
-      kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
+      kd:deaths?Math.round(kills/deaths*100)/100:(kills?Math.round(kills*100)/100:null),
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
       clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
-      avgKills:killsCount?Math.round(killsSum/killsCount*10)/10:null,
+      avgKills:recent.length?Math.round(kills/recent.length*10)/10:null,
       clutchAttempts,
       clutchWins
     };
-  });
+  }));
   rosterStatsCache=out;rosterStatsCacheAt=Date.now();
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
+
 app.get('/api/matches',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),map=new Map();
