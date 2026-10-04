@@ -277,7 +277,7 @@ var livePollBusy=false;
 var liveUiCache=null;
 function manualLiveMatchId(){
   try{
-    var q=new URLSearchParams(location.search).get('matchId')||localStorage.getItem('anonvc:liveMatchId')||'';
+    var q=new URLSearchParams(location.search).get('matchId')||localStorage.getItem('anonvc:liveMatchId')||'fcd9367c-ee05-4a05-966f-fc03a353ef57';
     return String(q).trim();
   }catch(_){return '';}
 }
