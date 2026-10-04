@@ -9,7 +9,11 @@ const KEY=process.env.FACEIT_API_KEY;
 async function faceit(endpoint){
   if(!KEY||KEY.includes('PASTE_YOUR'))throw new Error('FACEIT_API_KEY is not configured');
   const r=await fetch(API+endpoint,{headers:{Authorization:'Bearer '+KEY}});
-  if(!r.ok)throw new Error('FACEIT API '+r.status);
+  if(!r.ok){
+    const err=new Error('FACEIT API '+r.status+' @ '+endpoint);
+    err.status=r.status;
+    throw err;
+  }
   return r.json();
 }
 const playerUrl=n=>'https://www.faceit.com/ru/players/'+encodeURIComponent(n);
