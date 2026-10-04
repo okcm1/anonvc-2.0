@@ -40,7 +40,7 @@ function renderRosterPerformance(stats){
     if(!box)return;
     box.innerHTML=
       '<div><small>K/D</small><b>'+(s&&s.kd!=null?s.kd.toFixed(2):'—')+'</b></div>'+
-      '<div><small>AVG</small><b>'+(s&&s.avgKills!=null?s.avgKills.toFixed(1):'—')+'</b></div>'+
+      '<div><small>AVG</small><b>'+(s&&s.avgKills!=null?s.avgKills.toFixed(2):'—')+'</b></div>'+
       '<div><small>ADR</small><b>'+(s&&s.adr!=null?s.adr.toFixed(1):'—')+'</b></div>'+
       '<div><small>CLUTCH</small><b>'+(s&&s.clutchRate!=null?s.clutchRate.toFixed(1)+'%':'—')+'</b></div>'+
       '<div><small>WINRATE</small><b>'+(s&&s.winRate!=null?s.winRate.toFixed(1)+'%':'—')+'</b></div>'+
