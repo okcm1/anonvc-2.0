@@ -144,6 +144,8 @@ app.get('/api/live-match',async(q,res)=>{
     if(manualId){
       const m=await faceit('/matches/'+encodeURIComponent(manualId));
       const status=String(m.status||'').toLowerCase();
+      const active=['ongoing','started','in_progress','live','ready','configuring'].includes(status);
+      if(!active)return res.json(null);
       const sides=Object.values(m.teams||{}),os=ourSide(m.teams,ids,names),opp=sides.find(side=>side!==os);
       const participants=[];
       for(const side of sides)for(const p of side.roster||side.players||[])if(ours(p,ids,names)){
@@ -167,7 +169,6 @@ app.get('/api/live-match',async(q,res)=>{
       return res.json(payload);
     }
     
-  try{
     const team=await faceit('/teams/'+TEAM_ID);
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
     const candidates=new Map();
