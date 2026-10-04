@@ -407,3 +407,208 @@ footer:before{
   .match-head:after{right:12px}
   .roster-card:after{border-radius:0 12px 0 0}
 }
+
+
+/* ANONVC // CINEMATIC ATMOSPHERE */
+body{
+  background:
+    radial-gradient(ellipse 42% 30% at 4% 12%,rgba(255,36,48,.18),transparent 70%),
+    radial-gradient(ellipse 35% 28% at 96% 38%,rgba(255,36,48,.13),transparent 68%),
+    radial-gradient(ellipse 25% 22% at 50% 82%,rgba(255,36,48,.06),transparent 72%),
+    linear-gradient(120deg,#030405 0%,#0a0c0f 43%,#050607 100%);
+}
+body:before{
+  opacity:.16;
+  background-image:
+    linear-gradient(rgba(255,255,255,.026) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+body:after{
+  background:
+    linear-gradient(112deg,transparent 0 15%,rgba(255,36,48,.045) 15.15%,transparent 15.35% 68%,rgba(255,36,48,.028) 68.15%,transparent 68.35%),
+    repeating-linear-gradient(135deg,transparent 0 72px,rgba(255,255,255,.014) 73px 74px);
+}
+body{
+  position:relative;
+}
+body .page:before{
+  content:"";
+  position:fixed;
+  left:-180px;
+  top:20%;
+  width:420px;
+  height:420px;
+  border:1px solid rgba(255,36,48,.08);
+  border-radius:50%;
+  box-shadow:
+    0 0 0 34px rgba(255,36,48,.018),
+    0 0 0 70px rgba(255,36,48,.012),
+    0 0 80px rgba(255,36,48,.04);
+  pointer-events:none;
+  z-index:-1;
+}
+body .page:after{
+  content:"";
+  position:fixed;
+  right:-230px;
+  top:48%;
+  width:520px;
+  height:520px;
+  border:1px solid rgba(255,36,48,.07);
+  transform:rotate(18deg);
+  box-shadow:inset 0 0 0 32px rgba(255,36,48,.012),0 0 100px rgba(255,36,48,.025);
+  pointer-events:none;
+  z-index:-1;
+}
+
+/* red edge lighting without turning cards into glowing boxes */
+.panel{
+  box-shadow:
+    0 16px 38px rgba(0,0,0,.42),
+    inset 0 1px rgba(255,255,255,.025),
+    inset 2px 0 0 rgba(255,36,48,.035);
+}
+.panel:hover{
+  border-color:#383136;
+}
+.panel:before{
+  box-shadow:0 0 12px rgba(255,36,48,.32);
+}
+.operator:hover{
+  box-shadow:inset 3px 0 0 var(--red),inset 20px 0 35px rgba(255,36,48,.035);
+}
+.roster-card:hover{
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.48),
+    inset 2px 0 0 rgba(255,36,48,.4);
+}
+.roster-card:before{
+  box-shadow:0 0 13px rgba(255,36,48,.3);
+}
+.match-center{
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.46),
+    inset 2px 0 0 rgba(255,36,48,.12);
+}
+.match-center:before{
+  box-shadow:0 0 18px rgba(255,36,48,.38);
+}
+
+/* little mechanical details */
+.panel-title{
+  background:linear-gradient(90deg,rgba(255,255,255,.018),transparent 55%);
+}
+.panel-title:before{
+  content:"";
+  width:5px;
+  height:5px;
+  margin-right:auto;
+  margin-left:-9px;
+  background:var(--red);
+  box-shadow:0 0 9px rgba(255,36,48,.65);
+  clip-path:polygon(0 0,100% 0,70% 100%,0 100%);
+}
+.match-center .panel-title:after{
+  width:70px;
+}
+.match-center .mapline{
+  position:relative;
+}
+.match-center .mapline:after{
+  content:"SECURE CHANNEL // 01";
+  position:absolute;
+  right:0;
+  bottom:-18px;
+  color:#353c43;
+  font:6px "Space Mono";
+  letter-spacing:1px;
+}
+.match-intel>div{
+  position:relative;
+}
+.match-intel>div:after{
+  content:"";
+  position:absolute;
+  top:12px;
+  right:8px;
+  width:3px;
+  height:3px;
+  background:#3d444b;
+}
+.match-intel>div:first-child:after{background:var(--red);box-shadow:0 0 7px rgba(255,36,48,.6)}
+
+.recent .match-row:hover{
+  background:linear-gradient(90deg,rgba(255,36,48,.055),transparent 42%);
+  box-shadow:inset 3px 0 var(--red);
+}
+.match-row .score{
+  position:relative;
+}
+.match-row .score:after{
+  content:"";
+  display:block;
+  width:20px;
+  height:1px;
+  margin:4px 0 0 auto;
+  background:#343a40;
+}
+.form-dots span{
+  position:relative;
+  box-shadow:0 0 0 1px rgba(0,0,0,.3);
+}
+.form-dots span.win{box-shadow:0 0 8px rgba(101,227,154,.18)}
+.form-dots span.loss{box-shadow:0 0 8px rgba(255,36,48,.2)}
+
+.section-head small:before{
+  content:"● ";
+  color:var(--red);
+  text-shadow:0 0 8px rgba(255,36,48,.7);
+}
+.roster-card .avatar{
+  background:
+    linear-gradient(135deg,rgba(255,36,48,.04),transparent 35%),
+    linear-gradient(135deg,#191d21,#080a0c);
+}
+.roster-card .avatar:before{
+  border-color:rgba(255,36,48,.08);
+}
+.roster-card .avatar:after{
+  box-shadow:0 0 15px rgba(255,36,48,.05);
+}
+.roster-card:hover .avatar{
+  border-color:#3a2b2e;
+}
+.stats-overview .panel:hover,
+.stats-analytics .panel:hover{
+  transform:translateY(-2px);
+  transition:.18s;
+  box-shadow:0 18px 40px rgba(0,0,0,.44),inset 2px 0 rgba(255,36,48,.25);
+}
+.faceit-btn{
+  position:relative;
+  overflow:hidden;
+}
+.faceit-btn:after{
+  content:"";
+  position:absolute;
+  left:-45%;
+  top:0;
+  width:35%;
+  height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+  transform:skewX(-18deg);
+  transition:.5s;
+}
+.faceit-btn:hover:after{left:115%}
+
+/* subtle animated atmosphere */
+@keyframes anonvcPulse{
+  0%,100%{opacity:.45}
+  50%{opacity:.9}
+}
+.topbar:after{animation:anonvcPulse 3.6s ease-in-out infinite}
+.match-head:after{animation:anonvcPulse 1.8s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){
+  .topbar:after,.match-head:after{animation:none}
+}
