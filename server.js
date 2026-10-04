@@ -82,6 +82,7 @@ const rosterStatsCacheTtl=120000;
 app.use(express.static(path.join(__dirname,'public')));
 const liveMatchIds=new Map();
 const liveMatchMeta=new Map();
+let lastLiveMatch=null;
 let lastWebhook={receivedAt:null,event:null,matchId:null};
 
 // FACEIT callback health/check endpoint. FACEIT sends webhook events via POST.
@@ -145,7 +146,7 @@ app.get('/api/live-match',async(_q,res)=>{
     // Fallback: inspect the newest match for every roster player.
     await Promise.all(ms.map(async member=>{
       try{
-        const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=5');
+        const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=20');
         for(const item of h.items||[]){
           if(item.match_id)candidates.set(String(item.match_id),Date.now());
         }
@@ -172,18 +173,28 @@ app.get('/api/live-match',async(_q,res)=>{
 
         const opp=sides.find(side=>side!==os);
         const a=score(m,os),b=score(m,opp);
-        return res.json({
+        const payload={
           id:m.match_id,url:m.faceit_url,status,
           opponent:opp?.nickname||'FACEIT MATCH',
+          opponentTeam:opp?.nickname||opp?.name||'FACEIT MATCH',
+          opponentRoster:(opp?.roster||opp?.players||[]).map(p=>p?.nickname||p?.game_player_name||'').filter(Boolean),
           ourScore:a,opponentScore:b,
           date:m.started_at?new Date(Number(m.started_at)*1000).toLocaleDateString('ru-RU'):'—',
           timestamp:m.started_at||Date.now(),
           map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',
           matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',
           participantCount:participants.length,participants,live:true,updatedAt:Date.now()
-        });
+        };
+        lastLiveMatch=payload;
+        return res.json(payload);
       }catch(_){}
     }
+    // Keep the last confirmed live match for a short grace period so a transient
+    // FACEIT/API timeout does not make the dashboard instantly flash WAITING.
+    if(lastLiveMatch && Date.now()-Number(lastLiveMatch.updatedAt||0)<15000){
+      return res.json(Object.assign({},lastLiveMatch,{stale:true,updatedAt:Date.now()}));
+    }
+    lastLiveMatch=null;
     res.json(null);
   }catch(e){res.status(503).json({error:e.message})}
 });
