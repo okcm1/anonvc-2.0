@@ -124,17 +124,19 @@ function renderAdvancedStats(team){
 function renderMatches(matches){
   matchRows=Array.isArray(matches)?matches:[];
   var filtered=filteredRows();
+  var teamRows=matchRows.filter(function(m){return m.matchType==='TEAM';});
   var visible=expanded?filtered:filtered.slice(0,2);
   var html=visible.length?visible.map(rowHtml).join(''):'';
   var recent=$('#recentList'), all=$('#allMatches');
-  if(recent) recent.innerHTML=(html||emptyHtml())+controlsHtml(matchRows.length);
-  if(all) all.innerHTML=(html||'<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this team.</div>')+controlsHtml(matchRows.length);
+  var homeVisible=teamRows.slice(0,2).map(rowHtml).join('');
+  if(recent) recent.innerHTML=(homeVisible||emptyHtml());
+  if(all) all.innerHTML=(html||'<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this category.</div>')+controlsHtml(filtered.length);
 
   var mc=$('#matchCount'); if(mc) mc.textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
   var ms=$('#matchesState'); if(ms) ms.textContent=matchRows.length?'LIVE API':'NO FEED';
 
-  var live=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
-  var last=live||matchRows[0];
+  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
+  var last=live||teamRows[0];
   if(last){
     var d=detailFor(last);
     if($('#heroOurScore')) $('#heroOurScore').textContent=d.ourScore!=null?d.ourScore:'—';
@@ -162,7 +164,7 @@ function renderMatches(matches){
   if($('#nextOpponent')) $('#nextOpponent').textContent='—';
   if($('#nextMeta')) $('#nextMeta').textContent='No upcoming match in feed';
 
-  var formTeam=matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10);
+  var formTeam=teamRows.slice(0,10);
   var fl=$('#formList');
   if(fl) fl.innerHTML=formTeam.map(function(x){
     var d=detailFor(x), s=d.ourScore!=null&&d.opponentScore!=null?d.ourScore+' : '+d.opponentScore:'— : —';
@@ -170,7 +172,7 @@ function renderMatches(matches){
     return '<div class="form-line"><span class="'+cls+'"></span><b>'+s+'</b><small>'+esc(x.date||'—')+'</small></div>';
   }).join('');
 
-  var team=matchRows.filter(function(x){return x.matchType==='TEAM';});
+  var team=teamRows;
   var wins=team.filter(function(x){return detailFor(x).won===true;}).length;
   var losses=team.filter(function(x){return detailFor(x).won===false;}).length;
   var rate=team.length?Math.round(wins/team.length*100):null;
