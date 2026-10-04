@@ -233,11 +233,27 @@ async function getJson(url){
 }
 
 
+function renderLiveMatch(live){
+  if(!live)return;
+  if($('#heroOurScore'))$('#heroOurScore').textContent=live.ourScore!=null?live.ourScore:'0';
+  if($('#heroOpponentScore'))$('#heroOpponentScore').textContent=live.opponentScore!=null?live.opponentScore:'0';
+  if($('#heroOpponent'))$('#heroOpponent').textContent=live.opponent||'WAITING';
+  if($('#heroMap'))$('#heroMap').textContent=live.map||'CS2';
+  if($('#heroDate'))$('#heroDate').textContent=live.date||'—';
+  if($('#liveState'))$('#liveState').textContent='LIVE MATCH';
+  if($('#heroStatus'))$('#heroStatus').textContent='LIVE';
+  if($('#heroMode'))$('#heroMode').textContent=live.matchType==='TEAM'?'TEAM MATCH':live.matchType==='STACK'?'STACK MATCH':'SOLO MATCH';
+  if($('#heroPlayers'))$('#heroPlayers').textContent=(live.participantCount||'?')+' / 5';
+  if($('#heroUpdated'))$('#heroUpdated').textContent='LIVE · '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+}
+
 var livePollBusy=false;
 async function pollLiveFeed(){
   if(livePollBusy)return;
   livePollBusy=true;
   try{
+    var live=await getJson('/api/live-match').catch(function(){return null;});
+    if(live){renderLiveMatch(live);}
     var fresh=await getJson('/api/matches');
     if(Array.isArray(fresh)){
       var oldIds=new Set(matchRows.map(function(x){return x.id;}));
