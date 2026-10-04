@@ -133,7 +133,7 @@ function renderMatches(matches){
   var mc=$('#matchCount'); if(mc) mc.textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
   var ms=$('#matchesState'); if(ms) ms.textContent=matchRows.length?'LIVE API':'NO FEED';
 
-  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
   var last=live||teamRows[0];
   if(last){
     var d=detailFor(last);
@@ -243,11 +243,12 @@ async function boot(){
     if(Array.isArray(result[0]))renderPlayers(result[0]);
     renderMatches(Array.isArray(result[1])?result[1]:[]);
     getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
-    var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+    var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
     var unique=Array.from(new Map(first.map(function(x){return [x.id,x];})).values());
     loadDetails(unique);
+    loadDetails(matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10));
     if($('#liveState')) $('#liveState').textContent='FACEIT LINKED';
     if($('#apiState')) $('#apiState').textContent='ONLINE';
   }catch(e){
