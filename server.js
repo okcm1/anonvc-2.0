@@ -81,12 +81,19 @@ const rosterStatsCacheTtl=120000;
 
 app.use(express.static(path.join(__dirname,'public')));
 const liveMatchIds=new Map();
+let lastWebhook={receivedAt:null,event:null,matchId:null};
+
+// FACEIT callback health/check endpoint. FACEIT sends webhook events via POST;
+// GET/HEAD are also handled so the callback URL is reachable for endpoint checks.
+app.get('/api/faceit/webhook',(_req,res)=>res.status(200).json({ok:true,service:'AnonVC 2.0 webhook'}));
+app.head('/api/faceit/webhook',(_req,res)=>res.sendStatus(200));
 
 app.post('/api/faceit/webhook',express.json({limit:'256kb'}),(req,res)=>{
   const body=req.body||{};
-  const event=String(body.event||body.type||body.event_type||'').toLowerCase();
+  const event=String(body.event||body.type||body.event_type||body.name||'').toLowerCase();
   const payload=body.payload||body.data||body;
-  const id=payload.match_id||payload.matchId||payload.id||body.match_id||body.matchId;
+  const id=payload.match_id||payload.matchId||payload.match?.match_id||payload.id||body.match_id||body.matchId;
+  lastWebhook={receivedAt:Date.now(),event:event||null,matchId:id?String(id):null};
   if(id){
     const key=String(id);
     liveMatchIds.set(key,Date.now());
@@ -96,6 +103,8 @@ app.post('/api/faceit/webhook',express.json({limit:'256kb'}),(req,res)=>{
   }
   res.status(200).json({ok:true});
 });
+
+app.get('/api/webhook-status',(_req,res)=>res.json({ok:true,lastWebhook}));
 
 app.get('/api/live-match',async(_q,res)=>{
   try{
