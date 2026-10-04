@@ -137,10 +137,12 @@ function expandedIntel(m,d){
 function rowHtml(m){
   var d=detailFor(m);
   var score=d.ourScore!=null && d.opponentScore!=null ? d.ourScore+' : '+d.opponentScore : '— : —';
-  return '<div class="match-card'+(d.detailsLoaded?' open':'')+'">'+
+  var ourTeam=d.ourTeam||'ANONVC';
+  var opponentTeam=d.opponentTeam||d.opponent||'OPPONENT';
+  return '<div class="match-card'+(d.detailsLoaded&&!collapsedDetails.has(m.id)?' open':'')+'">'+
     '<div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
       '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
-      '<div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(d.date||m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
+      '<div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(ourTeam)+' <b>vs</b> '+esc(opponentTeam)+' · '+esc(d.map||m.map)+' · '+esc(d.date||m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
       '<div class="score">'+score+'</div>'+
       '<a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
     '</div>'+expandedIntel(m,d)+
