@@ -308,7 +308,11 @@ app.get('/api/matches',async(_q,res)=>{
    const count=participants.length;if(!count)return null;
    const os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os),a=score(m,os),b=score(m,opp);
    let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
-   return{id:m.match_id,url:m.faceit_url,status:m.status,won,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,date:m.finished_at?new Date(Number(m.finished_at)<100000000000?Number(m.finished_at)*1000:Number(m.finished_at)).toLocaleDateString('ru-RU'):'—',timestamp:m.finished_at||m.started_at||0,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',matchType:count===5?'TEAM':count>=2?'STACK':'SOLO',participantCount:count,participants,detailsLoaded:false};
+   const rosterOf=side=>(side?.roster||side?.players||[]).map(x=>x?.nickname||x?.game_player_name||'').filter(Boolean);
+   const ourRoster=rosterOf(os),opponentRoster=rosterOf(opp);
+   const ourTeam=os?.nickname||os?.name||'ANONVC',opponentTeam=opp?.nickname||opp?.name||'FACEIT MATCH';
+   const winnerTeam=won===true?ourTeam:won===false?opponentTeam:null;
+   return{id:m.match_id,url:m.faceit_url,status:m.status,won,opponent:opponentTeam,ourTeam,opponentTeam,ourRoster,opponentRoster,winnerTeam,ourScore:a,opponentScore:b,date:m.finished_at?new Date(Number(m.finished_at)<100000000000?Number(m.finished_at)*1000:Number(m.finished_at)).toLocaleDateString('ru-RU'):'—',timestamp:m.finished_at||m.started_at||0,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',matchType:count===5?'TEAM':count>=2?'STACK':'SOLO',participantCount:count,participants,detailsLoaded:false};
   }).filter(Boolean);
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
