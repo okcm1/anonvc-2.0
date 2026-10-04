@@ -90,10 +90,25 @@ function mvpHtml(m){
 function rowHtml(m){
   var d=detailFor(m);
   var score=d.ourScore!=null && d.opponentScore!=null ? d.ourScore+' : '+d.opponentScore : '— : —';
+  var ourTeam=d.ourTeam||'ANONVC';
+  var opponentTeam=d.opponentTeam||d.opponent||m.opponent||'FACEIT MATCH';
+  var winner=d.winnerTeam||(d.won===true?ourTeam:d.won===false?opponentTeam:'');
+  var resultText=winner?(winner===ourTeam?'ANONVC WIN':'OPPONENT WIN'):'RESULT PENDING';
+  var oppRoster=Array.isArray(d.opponentRoster)?d.opponentRoster:[];
+  var rosterText=oppRoster.length?oppRoster.map(function(p){return '<span>'+esc(p)+'</span>';}).join(''):'<span>ROSTER DATA PENDING</span>';
   var detail=d.players && d.players.length ? '<div class="match-expanded"><div class="match-expanded-head">TEAM PERFORMANCE</div>'+
     d.players.slice(0,5).map(function(p){return '<div class="player-line"><b>'+esc(p.nickname)+'</b><span>'+p.kills+'K / '+p.deaths+'D / '+p.assists+'A</span></div>';}).join('')+
     '</div>' : '';
-  return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'"><span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span><div><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.opponent||m.opponent)+' · '+esc(d.map||m.map)+' · '+esc(m.date)+'</small>'+mvpHtml(m)+'</div><div class="score">'+score+'</div><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a></div>'+detail+'</div>';
+  return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
+    '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
+    '<div class="match-main-info"><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.map||m.map||'CS2')+' · '+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
+    '<div class="match-scoreboard">'+
+      '<div class="score-teams"><span class="score-team our">'+esc(ourTeam)+'</span><b>'+score+'</b><span class="score-team opponent">'+esc(opponentTeam)+'</span></div>'+
+      '<small class="score-winner">'+esc(resultText)+'</small>'+
+      '<div class="opponent-roster"><span class="roster-label">OPPONENT ROSTER</span>'+rosterText+'</div>'+
+    '</div>'+
+    '<a class="match-faceit-link" href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
+    '</div>'+detail+'</div>';
 }
 function emptyHtml(){
   return '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no player matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
