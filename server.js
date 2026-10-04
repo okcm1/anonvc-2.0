@@ -107,7 +107,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
 
   const out=histories.map(h=>{
     const playerId=String(h.member.user_id||''), nickname=String(h.member.nickname||'');
-    let wins=0,knownResults=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0;
+    let wins=0,knownResults=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,killsSum=0,killsCount=0,clutchAttempts=0,clutchWins=0;
 
     const wonFor=function(item){
       const teams=Object.entries(item.teams||{});
@@ -146,6 +146,8 @@ app.get('/api/roster-stats',async(_q,res)=>{
           for(const p of side.players||[]){
             if(String(p.player_id||'')!==playerId && String(p.nickname||p.game_player_name||'').toLowerCase()!==nickname.toLowerCase())continue;
             const ps=p.player_stats||p.stats||p;
+            const k=val(ps,['Kills','kills','K']);
+            if(k!==null){killsSum+=k;killsCount++;}
             const cl=clutchStats(ps);
             clutchAttempts+=cl.attempts;
             clutchWins+=cl.wins;
