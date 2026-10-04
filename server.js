@@ -8,13 +8,39 @@ const TEAM_ID = process.env.FACEIT_TEAM_ID || 'a15fd8cf-bda5-4456-9445-866883315
 const API = 'https://open.faceit.com/data/v4';
 const KEY = process.env.FACEIT_API_KEY;
 
+const faceitCache = new Map();
+const faceitInflight = new Map();
+let faceitQueue = Promise.resolve();
+let lastFaceitRequest = 0;
+const FACEIT_CACHE_CACHE_TTL = 30000;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function faceit(endpoint) {
   if (!KEY || KEY.includes('PASTE_YOUR')) throw new Error('FACEIT_API_KEY is not configured');
-  const response = await fetch(API + endpoint, {
-    headers: { Authorization: `Bearer ${KEY}` }
+  const now = Date.now();
+  const cached = faceitCache.get(endpoint);
+  if (cached && now - cached.at < FACEIT_CACHE_CACHE_TTL) return cached.data;
+  if (faceitInflight.has(endpoint)) return faceitInflight.get(endpoint);
+  const job = faceitQueue.then(async () => {
+    const gap = Date.now() - lastFaceitRequest;
+    if (gap < 350) await sleep(350 - gap);
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      lastFaceitRequest = Date.now();
+      const response = await fetch(API + endpoint, { headers: { Authorization: 'Bearer ' + KEY, Accept: 'application/json' } });
+      if (response.ok) {
+        const data = await response.json();
+        faceitCache.set(endpoint, { at: Date.now(), data });
+        return data;
+      }
+      lastStatus = response.status;
+      if (response.status === 429) { await sleep(1000 * (attempt + 1)); continue; }
+      throw new Error('FACEIT API ' + response.status);
+    }
+    throw new Error('FACEIT API ' + lastStatus);
   });
-  if (!response.ok) throw new Error(`FACEIT API ${response.status}`);
-  return response.json();
+  faceitQueue = job.catch(() => {});
+  faceitInflight.set(endpoint, job);
+  try { return await job; } finally { faceitInflight.delete(endpoint); }
 }
 
 function faceitPlayerUrl(nickname) {
