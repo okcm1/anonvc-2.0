@@ -35,15 +35,24 @@ function renderPlayerStats(players){
   $('#playerStats').innerHTML=sorted.map((p,i)=>`<div class="player-stat-row"><span class="rank">0${i+1}</span><div class="player-stat-avatar avatar">${avatar(p)}</div><div class="player-stat-name"><strong>${esc(p.nickname)}</strong><small>${esc(p.role||'Operator')}</small></div><div><small>LEVEL</small><b>${p.skillLevel??'—'}</b></div><div><small>ELO</small><b>${p.elo??'—'}</b></div><a href="${esc(safeUrl(p.faceitUrl))}" target="_blank" rel="noopener">PROFILE ↗</a></div>`).join('');
 }
 
+function badge(m){
+  if(m.matchType==='TEAM') return '<span class="result win">TEAM MATCH · 5/5</span>';
+  if(m.matchType==='STACK') return `<span class="result">${esc('ANONVC STACK')} · ${m.participantCount}/5</span>`;
+  return `<span class="result">${esc('SOLO MATCH')} · 1/5</span>`;
+}
+
 function renderMatches(matches){
   const rows = Array.isArray(matches) ? matches : [];
-  const html = rows.map(m => `<div class="match-row"><span class="result ${m.won?'win':'loss'}">${m.won?'WIN':'LOSS'}</span><div><strong>${esc(m.opponent)}</strong><small>${esc(m.map)} · ${esc(m.date)}</small></div><div class="score">${m.ourScore} : ${m.opponentScore}</div><a href="${esc(safeUrl(m.url))}" target="_blank" rel="noopener">FACEIT ↗</a></div>`).join('');
-  $('#recentList').innerHTML = html || '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no team matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
-  $('#allMatches').innerHTML = html || '<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this team.</div>';
+  const teamRows = rows.filter(m=>m.matchType==='TEAM');
+  const stackRows = rows.filter(m=>m.matchType==='STACK');
+  const soloRows = rows.filter(m=>m.matchType==='SOLO');
+  const html = rows.map(m => `<div class="match-row"><div>${badge(m)}</div><div><strong>${esc(m.opponent)}</strong><small>${esc(m.map)} · ${esc(m.date)} · ${esc((m.participants||[]).join(', '))}</small></div><div class="score">${m.ourScore} : ${m.opponentScore}</div><span class="result ${m.won?'win':'loss'}">${m.won?'WIN':'LOSS'}</span><a href="${esc(safeUrl(m.url))}" target="_blank" rel="noopener">FACEIT ↗</a></div>`).join('');
+  $('#recentList').innerHTML = html || '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
+  $('#allMatches').innerHTML = html || '<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned.</div>';
   $('#matchCount').textContent = `${rows.length} MATCH${rows.length===1?'':'ES'}`;
   $('#matchesState').textContent = rows.length ? 'LIVE API' : 'NO FEED';
 
-  const last = rows[0];
+  const last = teamRows[0] || rows[0];
   if(last){
     $('#heroScore').textContent=`${last.ourScore} : ${last.opponentScore}`;
     $('#heroOpponent').textContent=last.opponent;
@@ -60,26 +69,32 @@ function renderMatches(matches){
     $('#nextMeta').textContent='No upcoming match in feed';
   }
 
-  const wins=rows.filter(x=>x.won).length;
-  const losses=rows.filter(x=>!x.won).length;
-  const rate=rows.length ? Math.round(wins/rows.length*100) : null;
+  const wins=teamRows.filter(x=>x.won).length;
+  const losses=teamRows.filter(x=>!x.won).length;
+  const rate=teamRows.length ? Math.round(wins/teamRows.length*100) : null;
   $('#winRate').textContent=rate===null?'—':rate+'%';
-  $('#wins').textContent=rows.length ? wins : '—';
-  $('#losses').textContent=rows.length ? losses : '—';
-  $('#games').textContent=rows.length || '—';
+  $('#wins').textContent=teamRows.length ? wins : '—';
+  $('#losses').textContent=teamRows.length ? losses : '—';
+  $('#games').textContent=teamRows.length || '—';
   $('#statsWinRate').textContent=rate===null?'—':rate+'%';
-  $('#statsRecord').textContent=rows.length?`${wins} — ${losses}`:'—';
-  $('#statsGames').textContent=rows.length||'—';
-  $('#formDots').innerHTML = Array.from({length:10},(_,i)=>`<span class="${rows[i]?(rows[i].won?'win':'loss'):'unknown'}"></span>`).join('');
+  $('#statsRecord').textContent=teamRows.length?`${wins} — ${losses}`:'—';
+  $('#statsGames').textContent=teamRows.length||'—';
+  $('#formDots').innerHTML = Array.from({length:10},(_,i)=>`<span class="${teamRows[i]?(teamRows[i].won?'win':'loss'):'unknown'}"></span>`).join('');
+
+  const stackWins=stackRows.filter(x=>x.won).length;
+  const soloWins=soloRows.filter(x=>x.won).length;
+  $('#matchesState').textContent = rows.length
+    ? `TEAM ${teamRows.length} · STACK ${stackRows.length} · SOLO ${soloRows.length}`
+    : 'NO FEED';
+  $('#nextMeta').textContent = rows.length
+    ? `TEAM ${teamRows.length} · STACK ${stackRows.length} · SOLO ${soloRows.length}`
+    : 'No match feed';
 }
 
 function renderTeamStats(data){
   const lifetime=data?.lifetime || data?.stats?.lifetime || {};
   const find=(obj,keys)=>{
-    for(const key of keys){
-      const value=obj?.[key];
-      if(value!==undefined && value!==null && value!=='') return value;
-    }
+    for(const key of keys){ const value=obj?.[key]; if(value!==undefined && value!==null && value!=='') return value; }
     return null;
   };
   const wins=find(lifetime,['wins','win','matches_won']);
@@ -88,22 +103,11 @@ function renderTeamStats(data){
   let rate=find(lifetime,['win_rate','winRate','winrate']);
   if(rate!==null && Number(rate)<=1) rate=Number(rate)*100;
   if(rate===null && wins!==null && losses!==null && Number(wins)+Number(losses)>0) rate=Number(wins)/(Number(wins)+Number(losses))*100;
-
-  if(rate!==null) {
-    const formatted=Math.round(Number(rate))+'%';
-    $('#winRate').textContent=formatted;
-    $('#statsWinRate').textContent=formatted;
-  }
+  if(rate!==null) { const formatted=Math.round(Number(rate))+'%'; $('#winRate').textContent=formatted; $('#statsWinRate').textContent=formatted; }
   if(wins!==null) $('#wins').textContent=wins;
   if(losses!==null) $('#losses').textContent=losses;
-  if(games!==null) {
-    $('#games').textContent=games;
-    $('#statsGames').textContent=games;
-  } else if(wins!==null && losses!==null) {
-    const total=Number(wins)+Number(losses);
-    $('#games').textContent=total;
-    $('#statsGames').textContent=total;
-  }
+  if(games!==null) { $('#games').textContent=games; $('#statsGames').textContent=games; }
+  else if(wins!==null && losses!==null) { const total=Number(wins)+Number(losses); $('#games').textContent=total; $('#statsGames').textContent=total; }
   if(wins!==null || losses!==null) $('#statsRecord').textContent=`${wins??'—'} — ${losses??'—'}`;
 }
 
@@ -120,21 +124,15 @@ async function boot(){
     const status=await getJson('/api/status');
     $('#apiState').textContent=status.configured?'ONLINE':'OFFLINE';
     $('#statsStatus').textContent=status.configured?'FACEIT API READY':'FACEIT API KEY REQUIRED';
-    if(!status.configured){
-      renderMatches([]);
-      return;
-    }
-
+    if(!status.configured){ renderMatches([]); return; }
     const [players,matches,teamStats]=await Promise.all([
       getJson('/api/players'),
       getJson('/api/matches'),
       getJson('/api/team-stats').catch(()=>null)
     ]);
-
     if(Array.isArray(players)) renderPlayers(players);
     renderMatches(Array.isArray(matches) ? matches : []);
     if(teamStats) renderTeamStats(teamStats);
-
     $('#liveState').textContent='FACEIT LINKED';
     $('#apiState').textContent='ONLINE';
   }catch(e){
