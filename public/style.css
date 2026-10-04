@@ -938,3 +938,118 @@ footer:before{
   }
   .match-faceit-link{grid-column:3;grid-row:1;font-size:8px;text-align:center}
 }
+
+
+/* ANONVC 2.7 — MATCH INTEL LAYOUT
+   Center score, right-side opponent identity + searchable lineup. */
+.match-row.match-row-detail{
+  grid-template-columns:75px minmax(150px,1fr) minmax(120px,150px) minmax(220px,300px) 90px;
+  min-height:108px;
+  column-gap:10px;
+}
+.match-scoreboard{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:0 8px;
+  border-left:1px solid rgba(255,255,255,.055);
+  border-right:1px solid rgba(255,255,255,.055);
+}
+.score-our-label{
+  color:#555c65;
+  font-size:6px;
+  font-weight:800;
+  letter-spacing:1.4px;
+  margin-bottom:5px;
+}
+.score-value{
+  font-family:"Barlow Condensed",sans-serif;
+  font-size:30px;
+  line-height:1;
+  letter-spacing:1px;
+  white-space:nowrap;
+}
+.score-winner{
+  margin-top:6px;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:1.1px;
+}
+.match-opponent{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:0 8px;
+}
+.opponent-kicker{
+  color:#555c65;
+  font-size:6px;
+  font-weight:800;
+  letter-spacing:1.5px;
+}
+.opponent-name{
+  display:block;
+  margin-top:3px;
+  color:#f0f2f4;
+  font-family:"Barlow Condensed",sans-serif;
+  font-size:18px;
+  line-height:1;
+  letter-spacing:.5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.match-opponent .opponent-roster{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-top:7px;
+  min-width:0;
+  max-height:34px;
+  overflow:hidden;
+  white-space:normal;
+}
+.match-opponent .opponent-roster>span:not(.roster-label){
+  color:#9ba2aa;
+  font-size:7px;
+  padding:3px 5px;
+}
+@media(max-width:1050px){
+  .match-row.match-row-detail{
+    grid-template-columns:68px minmax(130px,1fr) 125px minmax(180px,230px) 78px;
+  }
+  .score-value{font-size:25px}
+  .opponent-name{font-size:16px}
+}
+@media(max-width:720px){
+  .match-row.match-row-detail{
+    grid-template-columns:62px minmax(0,1fr) 78px;
+    min-height:112px;
+    row-gap:8px;
+  }
+  .match-main-info{grid-column:2}
+  .match-scoreboard{
+    grid-column:3;
+    grid-row:1;
+    border-left:0;
+    border-right:0;
+  }
+  .match-opponent{
+    grid-column:2 / 4;
+    grid-row:2;
+    border-top:1px solid rgba(255,255,255,.055);
+    padding-top:8px;
+  }
+  .match-opponent .opponent-roster{max-height:30px}
+  .match-faceit-link{
+    grid-column:1 / 2;
+    grid-row:2;
+    align-self:center;
+  }
+  .score-our-label,.score-winner{display:none}
+  .score-value{font-size:22px}
+}
