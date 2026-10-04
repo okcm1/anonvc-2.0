@@ -347,22 +347,46 @@ async function boot(){
   renderPlayers(FALLBACK);
   try{
     var status=await getJson('/api/status');
-    if($('#apiState')) $('#apiState').textContent=status.configured?'ONLINE':'OFFLINE';
-    if($('#statsStatus')) $('#statsStatus').textContent=status.configured?'FACEIT API READY':'FACEIT API KEY REQUIRED';
-    if(!status.configured){renderMatches([]);return;}
-    var result=await Promise.all([getJson('/api/players'),getJson('/api/matches'),getJson('/api/player-presence')]);
-    if(Array.isArray(result[0]))renderPlayers(result[0]);
-    renderMatches(Array.isArray(result[1])?result[1]:[]);
-    renderPresence(result[2]);
-    getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);window.dispatchEvent(new CustomEvent('anonvc:roster-stats'));}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
-    var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
+    var configured=!!status.configured;
+    if($('#apiState')) $('#apiState').textContent=configured?'ONLINE':'OFFLINE';
+    if($('#statsStatus')) $('#statsStatus').textContent=configured?'FACEIT API READY':'FACEIT API KEY REQUIRED';
+    if(!configured){renderMatches([]);return;}
+
+    // Do not let one broken FACEIT endpoint take down the whole dashboard.
+    var results=await Promise.allSettled([
+      getJson('/api/players'),
+      getJson('/api/matches'),
+      getJson('/api/player-presence')
+    ]);
+
+    var players=results[0].status==='fulfilled'?results[0].value:null;
+    var matches=results[1].status==='fulfilled'?results[1].value:null;
+    var presence=results[2].status==='fulfilled'?results[2].value:null;
+
+    if(Array.isArray(players))renderPlayers(players);
+    if(Array.isArray(matches))renderMatches(matches);
+    else renderMatches([]);
+    if(presence)renderPresence(presence);
+
+    // Roster statistics load independently from matches/presence.
+    getJson('/api/roster-stats').then(function(stats){
+      renderRosterPerformance(stats);
+      window.dispatchEvent(new CustomEvent('anonvc:roster-stats'));
+    }).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
+
+    var liveBoot=matchRows.find(function(x){
+      return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;
+    });
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
     var unique=Array.from(new Map(first.map(function(x){return [x.id,x];})).values());
     loadDetails(unique);
     loadDetails(matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10));
+
+    // The server is configured even if one optional feed is temporarily unavailable.
     if($('#liveState')) $('#liveState').textContent='FACEIT LINKED';
     if($('#apiState')) $('#apiState').textContent='ONLINE';
+    if($('#statsStatus') && results[1].status!=='fulfilled') $('#statsStatus').textContent='FACEIT MATCH FEED RETRY';
   }catch(e){
     if($('#apiState')) $('#apiState').textContent='ERROR';
     if($('#statsStatus')) $('#statsStatus').textContent='FACEIT API ERROR';
@@ -371,5 +395,4 @@ async function boot(){
     console.error('AnonVC boot error:',e);
   }
 }
-
 document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,2000);});
