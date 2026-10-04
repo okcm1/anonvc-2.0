@@ -21,7 +21,7 @@ async function faceit(endpoint){
   if(apiInflight.has(endpoint))return apiInflight.get(endpoint);
   const job=apiTail.then(async()=>{
     const gap=Date.now()-lastApiRequestAt;
-    if(gap<300)await sleep(300-gap);
+    if(gap<800)await sleep(800-gap);
     let lastStatus=0;
     for(let attempt=0;attempt<3;attempt++){
       lastApiRequestAt=Date.now();
@@ -32,7 +32,7 @@ async function faceit(endpoint){
         return data;
       }
       lastStatus=r.status;
-      if(r.status===429){await sleep(5000*(attempt+1));continue;}
+      if(r.status===429){await sleep(10000*(attempt+1));continue;}
       throw new Error('FACEIT API '+r.status);
     }
     throw new Error('FACEIT API '+lastStatus);
@@ -119,62 +119,109 @@ app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TE
 
 app.get('/api/players',async(_q,res)=>{
  try{
-  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],out=[];
-  for(const m of ms){
-   const key=String(m.user_id||m.nickname||'');
-   let d=playerDetailCache.get(key);
-   if(!d||Date.now()-d.at>PLAYER_DETAIL_TTL){
-    try{d={at:Date.now(),data:await faceit('/players/'+encodeURIComponent(m.user_id))};playerDetailCache.set(key,d)}catch(_){d=d||null;}
-   }
-   const p=d?.data||{};
-   const g=p.games?.cs2||{};
-   out.push({
-    id:p.player_id||m.user_id,nickname:p.nickname||m.nickname,avatar:p.avatar||m.avatar||'',country:p.country||m.country||'',
-    faceitUrl:String(p.faceit_url||m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
-    skillLevel:g.skill_level??m.skill_level??null,elo:g.faceit_elo??m.faceit_elo??null,
-    status:p.status||'active',verified:p.verified??null
-   });
-  }
+  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
+  const out=ms.map(m=>({
+    id:m.user_id,nickname:m.nickname,avatar:m.avatar||'',country:m.country||'RU',
+    faceitUrl:String(m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
+    skillLevel:m.skill_level??null,elo:m.faceit_elo??null,status:'active',verified:null
+  }));
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
 
+const normalizedStatKey=k=>String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const statAny=(s,keys)=>{
+  const obj=s||{},map={};
+  for(const [k,v] of Object.entries(obj))map[normalizedStatKey(k)]=v;
+  for(const k of keys){
+    const v=map[normalizedStatKey(k)];
+    if(v!==undefined&&v!==null&&v!=='')return num(v);
+  }
+  return null;
+};
+const clutchStats=s=>{
+  let attempts=0,wins=0;
+  for(let n=1;n<=5;n++){
+    const count=statAny(s,['1v'+n+'Count','1v'+n+' Count']);
+    const win=statAny(s,['1v'+n+'Wins','1v'+n+' Win','1v'+n+' Won']);
+    if(count!==null)attempts+=count;
+    if(win!==null)wins+=win;
+  }
+  return {attempts,wins};
+};
+
 app.get('/api/roster-stats',async(_q,res)=>{
  try{
-  if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<API_CACHE_TTL)return res.json(rosterStatsCache);
+  if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const out=[];
-  for(const member of members){
-    let stats=[];
+  const core=await limitMap(members,2,async member=>{
     try{
       const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=20');
-      stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
-    }catch(_){}
-    let wins=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0,clutchAttempts=0,clutchWins=0;
+      return (data.items||[]).map(x=>x.stats||x).filter(Boolean);
+    }catch(_){return []}
+  });
+
+  // Pull a small shared pool of recent match-stat payloads. This avoids requesting
+  // the same match once per player and gives us the real 1v1..1v5 clutch fields.
+  const histories=await limitMap(members,2,async member=>{
+    try{return await faceit('/players/'+member.user_id+'/history?game=cs2&limit=20')}catch(_){return {items:[]}}
+  });
+  const ids=[];
+  const seen=new Set();
+  for(const h of histories)for(const x of h?.items||[]){
+    if(x.match_id&&!seen.has(x.match_id)){seen.add(x.match_id);ids.push(x.match_id)}
+  }
+  const recentMatchIds=ids.slice(0,20);
+  const matchPayloads=await limitMap(recentMatchIds,2,async id=>{
+    try{return {id,data:await faceit('/matches/'+id+'/stats')}}catch(_){return null}
+  });
+
+  const byPlayer=new Map();
+  for(const payload of matchPayloads.filter(Boolean)){
+    for(const round of payload.data?.rounds||[]){
+      for(const side of round.teams||[]){
+        for(const p of side.players||[]){
+          const key=String(p.player_id||p.nickname||'').toLowerCase();
+          if(!key)continue;
+          const e=byPlayer.get(key)||{attempts:0,wins:0};
+          const cl=clutchStats(p.player_stats||{});
+          e.attempts+=cl.attempts;e.wins+=cl.wins;
+          byPlayer.set(key,e);
+        }
+      }
+    }
+  }
+
+  const out=members.map((member,i)=>{
+    const stats=core[i]||[];
+    let wins=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0;
     for(const st of stats){
       const r=String(st?.Result??st?.result??'').toLowerCase();
       if(r==='1'||r==='win'||r==='won'||r==='victory')wins++;
-      const k=val(st,['Kills','kills','K']),d=val(st,['Deaths','deaths','D']);
-      const kd=val(st,['K/D Ratio','K/D','KD','kd_ratio']) ?? (k!==null&&d!==null&&d>0?k/d:null);
-      const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
+      const k=statAny(st,['Kills','K']),d=statAny(st,['Deaths','D']);
+      const kd=statAny(st,['K/D Ratio','K/D','KD','kd_ratio']) ?? (k!==null&&d!==null&&d>0?k/d:null);
+      const adr=statAny(st,['ADR','Average Damage per Round','average_damage_per_round']);
       if(k!==null)kills+=k;if(d!==null)deaths+=d;
-      if(kd!==null){kdSum+=kd;kdCount++;}
-      if(adr!==null){adrSum+=adr;adrCount++;}
-      const cl=clutchStats(st);clutchAttempts+=cl.attempts;clutchWins+=cl.wins;
+      if(kd!==null){kdSum+=kd;kdCount++}
+      if(adr!==null){adrSum+=adr;adrCount++}
     }
-    out.push({
+    const pid=String(member.user_id||'').toLowerCase();
+    const nickname=String(member.nickname||'').toLowerCase();
+    const cl=byPlayer.get(pid)||byPlayer.get(nickname)||{attempts:0,wins:0};
+    const clutchRate=cl.attempts?Math.round(cl.wins/cl.attempts*1000)/10:null;
+    return {
       nickname:member.nickname,matches:stats.length,wins,
       winRate:stats.length?Math.round(wins/stats.length*1000)/10:null,
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
-      clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
-      clutchAttempts,clutchWins,
+      clutchRate,clutchAttempts:cl.attempts,clutchWins:cl.wins,
       avgKills:stats.length?Math.round(kills/stats.length*100)/100:null
-    });
-  }
+    };
+  });
   rosterStatsCache=out;rosterStatsCacheAt=Date.now();res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
+
 app.get('/api/matches',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),map=new Map();
@@ -194,18 +241,75 @@ app.get('/api/matches',async(_q,res)=>{
 
 app.get('/api/match/:id/summary',async(req,res)=>{
  try{
-  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),id=encodeURIComponent(req.params.id);
+  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],
+    ids=new Set(ms.map(m=>String(m.user_id))),names=new Set(ms.map(m=>String(m.nickname||'').toLowerCase())),
+    id=encodeURIComponent(req.params.id);
   const [m,st]=await Promise.all([faceit('/matches/'+id),faceit('/matches/'+id+'/stats').catch(()=>null)]);
-  const sides=Object.values(m.teams||{}),os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os),a=score(m,os),b=score(m,opp);
-  const sm=new Map();
-  for(const r of st?.rounds||[])for(const t of r.teams||[])for(const p of t.players||[])if(ours(p,ids,names)){
-   const k=String(p.player_id||p.nickname||''),s=p.player_stats||{},e=sm.get(k)||{nickname:p.nickname||p.game_player_name||'UNKNOWN',kills:0,deaths:0,assists:0,rt:0,rc:0};
-   const kls=val(s,['Kills','kills','K']),d=val(s,['Deaths','deaths','D']),as=val(s,['Assists','assists','A']),adr=val(s,['ADR','adr','Average Damage per Round','average_damage_per_round']),rt=val(s,['Rating','rating','Player Rating','player_rating','rating_value','HLTV Rating','HLTV rating','HLTV_Rating','Rating 2.0','rating_2_0','Game Rating']) ?? ratingFromStats(s) ?? num(p?.rating ?? p?.player_rating ?? p?.stats?.Rating ?? p?.stats?.rating ?? p?.stats?.['HLTV Rating'] ?? p?.stats?.['Rating 2.0']);
-   if(kls!==null)e.kills+=kls;if(d!==null)e.deaths+=d;if(as!==null)e.assists+=as;if(adr!==null){e.adr=(e.adr||0)+adr;e.ac=(e.ac||0)+1}if(rt!==null){e.rt+=rt;e.rc++}sm.set(k,e);
+  const sides=Object.values(m.teams||{}),os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os);
+  const a=score(m,os),b=score(m,opp);
+  const sm=new Map(),oppStats=new Map();
+
+  for(const r of st?.rounds||[]){
+    for(const t of r.teams||[]){
+      for(const p of t.players||[]){
+        const mine=ours(p,ids,names),target=mine?sm:oppStats;
+        const k=String(p.player_id||p.nickname||'').toLowerCase();
+        const s=p.player_stats||{};
+        const e=target.get(k)||{
+          id:p.player_id||null,nickname:p.nickname||p.game_player_name||'UNKNOWN',
+          kills:0,deaths:0,assists:0,adr:0,ac:0,rt:0,rc:0,
+          clutchAttempts:0,clutchWins:0
+        };
+        const kls=statAny(s,['Kills','K']),d=statAny(s,['Deaths','D']),as=statAny(s,['Assists','A']);
+        const adr=statAny(s,['ADR','Average Damage per Round','average_damage_per_round']);
+        const rt=statAny(s,['Rating','Player Rating','player_rating','rating_value','HLTV Rating','Rating 2.0','rating_2_0','Game Rating']) ?? ratingFromStats(s);
+        const cl=clutchStats(s);
+        if(kls!==null)e.kills+=kls;if(d!==null)e.deaths+=d;if(as!==null)e.assists+=as;
+        if(adr!==null){e.adr+=adr;e.ac++}if(rt!==null){e.rt+=rt;e.rc++}
+        e.clutchAttempts+=cl.attempts;e.clutchWins+=cl.wins;
+        target.set(k,e);
+      }
+    }
   }
-  const players=[...sm.values()].map(x=>({...x,rating:x.rc?x.rt/x.rc:null,kd:x.deaths?x.kills/x.deaths:x.kills,adr:x.ac?x.adr/x.ac:null})).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills||y.kd-x.kd);
+
+  const finalize=x=>({...x,
+    rating:x.rc?x.rt/x.rc:null,
+    kd:x.deaths?x.kills/x.deaths:x.kills,
+    adr:x.ac?x.adr/x.ac:null,
+    clutchRate:x.clutchAttempts?x.clutchWins/x.clutchAttempts*100:null
+  });
+  const players=[...sm.values()].map(finalize).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills);
+  const opponentPlayers=[...oppStats.values()].map(finalize).sort((x,y)=>(y.rating??-999)-(x.rating??-999)||y.kills-x.kills);
+
+  // Match details contain the authoritative rosters even if match stats are partial.
+  const rosterFor=s=>Array.isArray(s?.players||s?.roster)?(s.players||s.roster).map(p=>({
+    id:p.player_id||null,nickname:p.nickname||p.game_player_name||'UNKNOWN',
+    avatar:p.avatar||'',skillLevel:p.game_skill_level??p.skill_level??null,playing:p.playing!==false
+  })):[];
+
+  const ourRoster=rosterFor(os);
+  const oppRoster=rosterFor(opp);
+  const mergeRoster=(base,stats)=>base.map(p=>{
+    const hit=stats.find(x=>String(x.id||'').toLowerCase()===String(p.id||'').toLowerCase()||String(x.nickname).toLowerCase()===String(p.nickname).toLowerCase());
+    return hit?Object.assign({},p,hit):p;
+  });
+
   let won=winnerFor(m,os);if(won===null&&a!==null&&b!==null)won=a>b;
-  res.json({id:m.match_id,status:m.status,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,won,map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',mvp:players[0]||null,players,detailsLoaded:true});
+  const date=m.finished_at||m.started_at||m.configured_at||null;
+  res.json({
+    id:m.match_id,status:m.status,opponent:opp?.nickname||'FACEIT MATCH',
+    opponentTeam:opp?.nickname||'FACEIT MATCH',
+    ourTeam:os?.nickname||'ANONVC',
+    ourScore:a,opponentScore:b,won,
+    map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',
+    date:date?new Date(Number(date)<100000000000?Number(date)*1000:Number(date)).toLocaleDateString('ru-RU'):'—',
+    mvp:players[0]||null,
+    players:mergeRoster(ourRoster,players),
+    opponentPlayers:mergeRoster(oppRoster,opponentPlayers),
+    ourRoster,opponentRoster:oppRoster,
+    roundCount:Array.isArray(st?.rounds)?st.rounds.length:null,
+    detailsLoaded:true
+  });
  }catch(e){res.status(503).json({error:e.message})}
 });
 
