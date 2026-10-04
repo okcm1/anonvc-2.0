@@ -86,8 +86,6 @@ app.get('/api/roster-stats',async(_q,res)=>{
  try{
   if(rosterStatsCache&&Date.now()-rosterStatsCacheAt<rosterStatsCacheTtl)return res.json(rosterStatsCache);
   const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
-  const ids=new Set(members.map(m=>String(m.user_id)));
-  const names=new Set(members.map(m=>String(m.nickname||'').toLowerCase()));
   const histories=await Promise.all(members.map(async m=>{
     try{
       const h=await faceit('/players/'+m.user_id+'/history?game=cs2&limit=20');
@@ -96,27 +94,33 @@ app.get('/api/roster-stats',async(_q,res)=>{
   }));
   const allMatches=new Map();
   histories.forEach(h=>h.items.forEach(item=>{if(!allMatches.has(item.match_id))allMatches.set(item.match_id,item);}));
-  const statsCache=new Map();
+  const dataCache=new Map();
   const idsToFetch=[...allMatches.keys()];
   let cursor=0;
   const worker=async()=>{
     while(cursor<idsToFetch.length){
       const id=idsToFetch[cursor++];
-      try{statsCache.set(id,await faceit('/matches/'+encodeURIComponent(id)+'/stats'));}catch(_){statsCache.set(id,null);}
+      try{
+        const [detail,stats]=await Promise.all([
+          faceit('/matches/'+encodeURIComponent(id)),
+          faceit('/matches/'+encodeURIComponent(id)+'/stats').catch(()=>null)
+        ]);
+        dataCache.set(id,{detail,stats});
+      }catch(_){dataCache.set(id,{detail:null,stats:null});}
     }
   };
   await Promise.all([worker(),worker(),worker(),worker()]);
   const out=histories.map(h=>{
     const playerId=String(h.member.user_id),nickname=String(h.member.nickname||'').toLowerCase();
     let matches=0,wins=0,kills=0,deaths=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0;
-    h.items.forEach(m=>{
-      const sides=Object.values(m.teams||{});
+    h.items.forEach(item=>{
+      const data=dataCache.get(item.match_id)||{},m=data.detail,st=data.stats;
+      const sides=Object.values(m?.teams||item.teams||{});
       const ps=sides.find(s=>(s.players||s.roster||[]).some(p=>String(p.player_id||'')===playerId||String(p.nickname||p.game_player_name||'').toLowerCase()===nickname));
       if(!ps)return;
       let won=winnerFor(m,ps);
       const scA=score(m,ps),opp=sides.find(s=>s!==ps),scB=score(m,opp);
       if(won===null&&scA!==null&&scB!==null)won=scA>scB;
-      const st=statsCache.get(m.match_id);
       let playerStat=null;
       for(const round of st?.rounds||[]){
         for(const side of round.teams||[]){
