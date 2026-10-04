@@ -104,19 +104,31 @@ app.get('/api/roster-stats',async(_q,res)=>{
     stats.sort((a,b)=>finishedAt(b)-finishedAt(a));
     const recent=stats.slice(0,20);
 
-    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0;
+    let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0,clutchAttempts=0,clutchWins=0;
     recent.forEach(st=>{
-      const result=val(st,['Result','result']);
-      if(result!==null){
+      // Match result comes directly from FACEIT's per-match stats payload.
+      const rawResult=st?.Result ?? st?.result ?? null;
+      if(rawResult!==null&&rawResult!==''){
         knownResults++;
-        if(result===1)wins++;
+        const r=String(rawResult).toLowerCase();
+        if(rawResult===1||r==='1'||r==='win'||r==='won'||r==='victory')wins++;
       }
+
       const k=val(st,['Kills','kills','K']);
       const d=val(st,['Deaths','deaths','D']);
+      const directKd=val(st,['K/D','K/D Ratio','K/D ratio','KD','kd','Average K/D','Average K/D Ratio']);
       const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
+
       if(k!==null)kills+=k;
       if(d!==null)deaths+=d;
+
+      // FACEIT's recent-performance K/D is an average of the K/D for each
+      // of the last 20 matches, not total kills divided by total deaths.
+      const matchKd=directKd!==null?directKd:(k!==null&&d!==null&&d>0?k/d:null);
+      if(matchKd!==null){kdSum+=matchKd;kdCount++;}
+
       if(adr!==null){adrSum+=adr;adrCount++;}
+
       const cl=clutchStats(st);
       clutchAttempts+=cl.attempts;
       clutchWins+=cl.wins;
@@ -127,7 +139,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
       matches:recent.length,
       wins,
       winRate:knownResults?Math.round(wins/knownResults*1000)/10:null,
-      kd:deaths?Math.round(kills/deaths*100)/100:(kills?Math.round(kills*100)/100:null),
+      kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
       clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
       avgKills:recent.length?Math.round(kills/recent.length*10)/10:null,
