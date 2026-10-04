@@ -373,3 +373,14 @@
  .match-card .match-opponent{grid-column:2!important}
  .match-card .match-faceit-link{grid-column:2!important;justify-self:start!important}
 }
+
+/* Collapsible TEAM PERFORMANCE */
+.match-expanded{padding:0!important}
+.match-expanded-toggle{width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:13px 18px!important;border:0!important;border-top:1px solid #252a30!important;background:#0a0d10!important;color:#737b84!important;cursor:pointer!important;text-align:left!important;font:800 8px/1 Inter,sans-serif!important;letter-spacing:1.7px!important}
+.match-expanded-toggle:hover{background:#101318!important;color:#e5e7e9!important}
+.match-expanded-toggle span{color:#737b84!important}.match-expanded-toggle span:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#e52a34;margin-right:7px;vertical-align:1px;box-shadow:0 0 7px rgba(229,42,52,.5)}
+.match-expanded-toggle b{font-size:7px!important;color:#9da3aa!important;letter-spacing:1px!important}.match-expanded-toggle i{font-style:normal;color:#e52a34!important;margin-left:5px}
+.match-expanded.is-closed .performance-body{display:none!important}
+.match-expanded.is-open .performance-body{display:block!important;animation:anonPerfOpen .18s ease-out}
+@keyframes anonPerfOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.match-expanded.is-open .match-expanded-toggle{background:#0d1115!important;color:#d9dde1!important}
