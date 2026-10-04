@@ -134,7 +134,9 @@ function renderMatches(matches){
   var mc=$('#matchCount'); if(mc) mc.textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
   var ms=$('#matchesState'); if(ms) ms.textContent=matchRows.length?'LIVE API':'NO FEED';
 
-  var live=teamRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+  // MATCH CENTER must follow any active FACEIT match: TEAM (5/5), STACK (2-4/5), or SOLO (1/5).
+  // A 3-player stack is valid and must not be ignored just because it is not a 5-player team match.
+  var live=matchRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
   var last=live;
   if(last){
     var d=detailFor(last);
