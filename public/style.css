@@ -512,3 +512,184 @@ footer{
     min-height:72px;
   }
 }
+
+
+/* =========================================================
+   ANONVC 2.5 — UNDERGROUND BROADCAST SKIN
+   Visual-only layer. No layout/API/functionality changes.
+   ========================================================= */
+:root{
+  --hud-red:#ff3434;
+  --hud-dim:rgba(255,255,255,.045);
+}
+body{overflow-x:hidden}
+body:after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:19;
+  background:
+    linear-gradient(90deg,transparent 0 49.95%,rgba(255,255,255,.012) 50%,transparent 50.05%),
+    linear-gradient(180deg,rgba(255,255,255,.012),transparent 18%,transparent 82%,rgba(239,48,48,.018));
+  mix-blend-mode:screen;
+}
+/* tiny tactical corner brackets on major surfaces */
+.panel:before,
+.match-card:before,
+#roster .roster-card:before,
+.analytics-card:before{
+  content:"";
+  position:absolute;
+  top:0;left:0;
+  width:34px;height:34px;
+  background:
+    linear-gradient(var(--hud-red),var(--hud-red)) left top/22px 1px no-repeat,
+    linear-gradient(var(--hud-red),var(--hud-red)) left top/1px 22px no-repeat;
+  opacity:.75;
+  z-index:3;
+  pointer-events:none;
+}
+.panel-title:after{
+  content:"//";
+  color:rgba(239,48,48,.55);
+  font-size:9px;
+  margin-left:auto;
+  padding-left:10px;
+}
+/* live/status language */
+#liveState,
+#heroStatus{
+  position:relative;
+  text-shadow:0 0 14px rgba(239,48,48,.18);
+}
+#liveState:before,
+#heroStatus:before{
+  content:"";
+  display:inline-block;
+  width:6px;height:6px;
+  margin-right:6px;
+  border-radius:50%;
+  background:var(--hud-red);
+  box-shadow:0 0 12px rgba(255,52,52,.8);
+  animation:anonvcPulse 1.8s ease-in-out infinite;
+}
+@keyframes anonvcPulse{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+/* stronger score-stage separation */
+.match-head:before{
+  content:"LIVE FEED // CS2";
+  position:absolute;
+  left:48px;top:13px;
+  color:#4f555d;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:1.8px;
+}
+.match-head:after{
+  content:"ROUND DATA";
+  position:absolute;
+  right:48px;top:13px;
+  color:#4f555d;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:1.8px;
+}
+/* score glow and center divider */
+.match-head .left,.match-head .right{position:relative}
+.match-head .left:after,.match-head .right:after{
+  content:"";
+  position:absolute;
+  top:50%;
+  width:70px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--hud-red));
+  opacity:.35;
+}
+.match-head .left:after{right:-35px}
+.match-head .right:after{left:-35px;transform:scaleX(-1)}
+.rounds span{position:relative;overflow:hidden}
+.rounds span:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:translateX(-100%);
+}
+.match-center:hover .rounds span:after{animation:anonvcScan 1.2s ease forwards}
+@keyframes anonvcScan{to{transform:translateX(100%)}}
+/* operator cards feel like personnel terminals */
+.operator{position:relative;transition:padding-left .18s,background .18s}
+.operator:before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:2px;
+  background:var(--hud-red);
+  transform:scaleY(0);
+  transition:transform .18s;
+}
+.operator:hover{padding-left:19px;background:linear-gradient(90deg,rgba(239,48,48,.055),transparent 65%)}
+.operator:hover:before{transform:scaleY(1)}
+/* roster photo treatment */
+#roster .roster-photo .avatar{
+  position:relative;
+  box-shadow:0 0 0 1px rgba(255,255,255,.035),0 18px 45px rgba(0,0,0,.42);
+}
+#roster .roster-photo .avatar:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,rgba(239,48,48,.10),transparent 42%,rgba(255,255,255,.025));
+  pointer-events:none;
+}
+#roster .roster-card:nth-child(1) .roster-photo:after{content:"01 // AWPER"}
+#roster .roster-card:nth-child(2) .roster-photo:after{content:"02 // RIFLER"}
+#roster .roster-card:nth-child(3) .roster-photo:after{content:"03 // RIFLER"}
+#roster .roster-card:nth-child(4) .roster-photo:after{content:"04 // SUPPORT"}
+#roster .roster-card:nth-child(5) .roster-photo:after{content:"05 // ENTRY"}
+/* tabs and buttons get a HUD sweep instead of generic hover */
+.match-tab,.faceit-btn,.show-all-matches{position:relative;overflow:hidden}
+.match-tab:after,.faceit-btn:after,.show-all-matches:after{
+  content:"";
+  position:absolute;
+  top:0;bottom:0;left:-35%;width:20%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);
+  transform:skewX(-18deg);
+  transition:left .45s ease;
+}
+.match-tab:hover:after,.faceit-btn:hover:after,.show-all-matches:hover:after{left:115%}
+/* section headings get a small machine-code label */
+.section-head h1{position:relative}
+.section-head h1:after{
+  content:"SYSTEM / 2.0";
+  position:absolute;
+  left:3px;bottom:-15px;
+  font-family:Inter,Arial,sans-serif;
+  font-size:6px;
+  font-weight:800;
+  letter-spacing:2px;
+  color:#4d535b;
+}
+/* richer stat cells */
+.stats-overview .panel,.analytics-card{position:relative}
+.stats-overview .panel:after,.analytics-card:after{
+  content:"";
+  position:absolute;
+  right:-22px;bottom:-32px;
+  width:90px;height:90px;
+  border:1px solid rgba(239,48,48,.06);
+  transform:rotate(45deg);
+  pointer-events:none;
+}
+/* footer signature */
+footer:before{
+  content:"ANONVC // NO TRACE // NO MERCY";
+  color:#3d4249;
+  letter-spacing:1.4px;
+}
+@media(max-width:720px){
+  .match-head:before{left:15px}
+  .match-head:after{right:15px}
+  .match-head .left:after,.match-head .right:after{display:none}
+  .section-head h1:after{bottom:-12px}
+  footer:before{display:none}
+}
