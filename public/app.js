@@ -309,7 +309,7 @@ var livePollBusy=false;
 var liveUiCache=null;
 function manualLiveMatchId(){
   try{
-    var q=new URLSearchParams(location.search).get('matchId')||localStorage.getItem('anonvc:liveMatchId')||'1-fcd9367c-ee05-4a05-966f-fc03a353ef57';
+    var q=new URLSearchParams(location.search).get('matchId')||localStorage.getItem('anonvc:liveMatchId')||'1-face43be-ae37-4820-b041-361cd7d42511';
     return String(q).trim();
   }catch(_){return '';}
 }
@@ -342,7 +342,7 @@ async function pollLiveFeed(){
 async function boot(){
   try{
     var qid=new URLSearchParams(location.search).get('matchId');
-    if(qid)localStorage.setItem('anonvc:liveMatchId',String(qid).trim());
+    if(qid)localStorage.setItem('anonvc:liveMatchId',String(qid).trim()); else localStorage.setItem('anonvc:liveMatchId','1-face43be-ae37-4820-b041-361cd7d42511');
   }catch(_){ }
   renderPlayers(FALLBACK);
   try{
