@@ -115,7 +115,34 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;ba
 
 .match-toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 1px 13px;color:#626a72;font-family:"Space Mono";font-size:7px;font-weight:700;letter-spacing:1px}
 .match-tabs{display:flex;gap:5px;flex-wrap:wrap}.match-tab{border:1px solid var(--line);background:#0d1013;color:#69717a;padding:9px 12px;font-family:"Space Mono";font-size:7px;font-weight:700;letter-spacing:1px;cursor:pointer}.match-tab:hover,.match-tab.active{color:#fff;border-color:var(--red);background:#1b0f11;box-shadow:inset 0 -2px 0 var(--red)}
-.all-matches{display:grid;gap:8px}.match-card{border:1px solid #20252a;background:var(--panel)}.match-card .match-row{border:0}.match-expanded{border-top:1px solid var(--line);padding:9px 17px 11px}.match-expanded-head{font-family:"Space Mono";font-size:7px;letter-spacing:1px;color:var(--red);font-weight:700;margin-bottom:5px}.player-line{display:grid;grid-template-columns:1fr 130px 110px;gap:10px;padding:6px 0;border-bottom:1px solid #191d21;font-family:"Space Mono";font-size:7px;color:#7b838b}.player-line b{color:#ddd}.player-line span{text-align:right}.player-line:last-child{border:0}.show-all-matches{display:block;width:100%;border:1px solid var(--line);background:#111417;color:#858d95;padding:13px 15px;font-family:"Space Mono";font-size:7px;font-weight:700;letter-spacing:1px;text-align:left;cursor:pointer}.show-all-matches:hover{border-color:var(--red);color:#fff}
+.all-matches{display:grid;gap:8px}.match-card{border:1px solid #20252a;background:var(--panel)}.match-card .match-row{border:0}.match-expanded{border-top:1px solid var(--line);padding:9px 17px 11px}.match-expanded-head{font-family:"Space Mono";font-size:7px;letter-spacing:1px;color:var(--red);font-weight:700;margin-bottom:5px}.player-line{display:grid;grid-template-columns:1fr 130px 110px;gap:10px;padding:6px 0;border-bottom:1px solid #191d21;font-family:"Space Mono";font-size:7px;color:#7b838b}.player-line b{color:#ddd}.player-line span{text-align:right}.player-line:last-child{border:0}.match-card.open{border-color:#343a40;box-shadow:0 0 0 1px rgba(255,48,56,.06),0 16px 35px rgba(0,0,0,.22)}
+.match-row-detail{cursor:pointer}
+.match-row-detail:after{content:"CLICK / INTEL";justify-self:end;color:#555d65;font-family:"Space Mono";font-size:6px;letter-spacing:.8px}
+.match-card.open .match-row-detail:after{content:"CLOSE / INTEL";color:var(--red)}
+.match-expanded{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(255,48,56,.025),rgba(0,0,0,.08));padding:0}
+.match-expanded-top{display:grid;grid-template-columns:1fr 150px 1fr;align-items:center;gap:20px;padding:18px 17px;border-bottom:1px solid var(--line)}
+.match-expanded-top>div:not(.expanded-score){display:flex;flex-direction:column;gap:5px}
+.match-expanded-top small,.intel-section-title,.match-expanded-footer,.intel-player small{font-family:"Space Mono";font-size:6px;letter-spacing:1px;color:#626a72}
+.match-expanded-top b{font-family:"Barlow Condensed";font-size:22px;text-transform:uppercase}
+.match-expanded-top span{font-family:"Space Mono";font-size:6px;color:#59616a}
+.expanded-score{font-family:"Barlow Condensed";font-size:40px;text-align:center;color:#fff}
+.match-expanded-grid{display:grid;grid-template-columns:1.35fr 1fr}
+.intel-section{min-width:0}
+.intel-section+ .intel-section{border-left:1px solid var(--line)}
+.intel-section-title{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);color:var(--red);font-weight:700}
+.intel-section-title i{font-style:normal;color:#5d656d;font-size:6px}
+.intel-player{display:grid;grid-template-columns:28px 1fr 70px 70px 80px 75px;gap:8px;align-items:center;min-height:46px;padding:0 14px;border-bottom:1px solid #191d21}
+.intel-player b,.opponent-player b{font-family:"Barlow Condensed";font-size:16px}
+.intel-player>span:not(.intel-rank){font-family:"Barlow Condensed";font-size:15px;text-align:right}
+.intel-player small{display:block;margin-bottom:2px}
+.intel-rank{font-family:"Space Mono";font-size:7px;color:#4f575f}
+.opponent-player{display:grid;grid-template-columns:28px 1fr 70px;gap:8px;align-items:center;min-height:46px;padding:0 14px;border-bottom:1px solid #191d21}
+.opponent-player span:last-child{font-family:"Space Mono";font-size:7px;color:#777f87;text-align:right}
+.intel-empty{padding:20px 14px;color:#5d656d;font-family:"Space Mono";font-size:7px}
+.match-expanded-footer{display:flex;align-items:center;gap:22px;padding:12px 14px;border-top:1px solid var(--line);color:#5e666e}
+.match-expanded-footer b{color:#d9dde0;margin-left:5px}
+.match-expanded-footer a{margin-left:auto;color:#fff;text-decoration:none;border-bottom:1px solid var(--red);padding-bottom:2px}
+.show-all-matches{display:block;width:100%;border:1px solid var(--line);background:#111417;color:#858d95;padding:13px 15px;font-family:"Space Mono";font-size:7px;font-weight:700;letter-spacing:1px;text-align:left;cursor:pointer}.show-all-matches:hover{border-color:var(--red);color:#fff}
 
 .stats-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.stats-overview .panel{padding-bottom:18px}.stat-number{display:block;font-family:"Barlow Condensed";font-size:54px;line-height:1;padding:22px 17px 5px}.stats-overview .panel>small,.analytics-card small{display:block;color:#606870;font-family:"Space Mono";font-size:6px;padding:0 17px;letter-spacing:.8px}
 .stats-analytics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.analytics-card{padding-bottom:17px;min-height:155px}.analytics-card .stat-number{font-size:48px}.analytics-card .stat-text{display:block;font-family:"Barlow Condensed";font-size:31px;line-height:1;padding:22px 17px 5px;text-transform:uppercase}.analytics-card>small{padding:0 17px}.stats-form{display:flex;gap:5px;align-items:center;height:78px;padding:17px}.stats-form span{width:16px;height:16px;display:block;transform:skew(-10deg);background:#383e44}.stats-form span.win{background:var(--green)}.stats-form span.loss{background:var(--red)}
