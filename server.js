@@ -228,6 +228,52 @@ app.get('/api/matches',async(_q,res)=>{
  }catch(e){res.status(503).json({error:e.message})}
 });
 
+app.get('/api/live-match',async(req,res)=>{
+ try{
+  const team=await faceit('/teams/'+TEAM_ID),members=team.members||[];
+  const ids=new Set(members.map(m=>String(m.user_id))),names=new Set(members.map(m=>String(m.nickname||'').toLowerCase()));
+  const wanted=String(req.query.matchId||'').trim();
+  let match=null;
+
+  if(wanted){
+    const variants=wanted.startsWith('1-')?[wanted]:['1-'+wanted,wanted];
+    for(const id of variants){
+      try{match=await faceit('/matches/'+encodeURIComponent(id));if(match)break}catch(_){}
+    }
+  }
+
+  if(!match){
+    const histories=await limitMap(members,2,async m=>{
+      try{return await faceit('/players/'+m.user_id+'/history?game=cs2&limit=10')}catch(_){return {items:[]}}
+    });
+    const active=new Map();
+    for(const h of histories)for(const m of h?.items||[]){
+      const st=String(m.status||'').toLowerCase();
+      if(['ongoing','started','in_progress','live','ready','configuring'].includes(st)&&m.match_id)active.set(m.match_id,m);
+    }
+    const candidates=[...active.values()].sort((a,b)=>(b.started_at||b.configured_at||0)-(a.started_at||a.configured_at||0));
+    for(const item of candidates){
+      try{match=await faceit('/matches/'+encodeURIComponent(item.match_id));if(match)break}catch(_){}
+    }
+  }
+
+  if(!match)return res.json(null);
+  const sides=Object.values(match.teams||{}),os=ourSide(match.teams,ids,names),opp=sides.find(s=>s!==os);
+  if(!os)return res.json(null);
+  const a=score(match,os),b=score(match,opp);
+  const participants=[];
+  for(const x of os.players||os.roster||[])if(ours(x,ids,names))participants.push(x.nickname||x.game_player_name);
+  res.json({
+    id:match.match_id,status:match.status||'UNKNOWN',ourScore:a,opponentScore:b,
+    opponent:opp?.nickname||'WAITING',map:match.game_data?.map||match.game_data?.maps?.[0]||match.map||'CS2',
+    date:match.started_at?new Date(Number(match.started_at)<100000000000?Number(match.started_at)*1000:Number(match.started_at)).toLocaleDateString('ru-RU'):'—',
+    matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',
+    participantCount:participants.length,participants,
+    faceitUrl:String(match.faceit_url||'').replace('{lang}','ru')
+  });
+ }catch(e){res.status(503).json({error:e.message})}
+});
+
 app.get('/api/match/:id/summary',async(req,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],
