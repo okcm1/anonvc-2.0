@@ -122,12 +122,12 @@ app.get('/api/roster-stats',async(_q,res)=>{
    hi.forEach(function(item){const w=wonFor(item);if(w!==null){knownResults++;if(w)wins++;}});
    let kills=0,deaths=0,kdSum=0,kdCount=0,adrSum=0,adrCount=0,clutchAttempts=0,clutchWins=0,statMatches=0;
    si.forEach(function(item){
-    const s=item.stats||item||{};
-    const k=val(s,['Kills','kills','K']);
-    const d=val(s,['Deaths','deaths','D']);
-    const kd=val(s,['K/D Ratio','K/D','KD','kd_ratio']);
-    const adr=val(s,['ADR','adr','Average Damage per Round','average_damage_per_round']);
-    const cl=clutchStats(s);
+    const st=item.stats||item||{};
+    const k=val(st,['Kills','kills','K']);
+    const d=val(st,['Deaths','deaths','D']);
+    const kd=val(st,['K/D Ratio','K/D','KD','kd_ratio']);
+    const adr=val(st,['ADR','adr','Average Damage per Round','average_damage_per_round']);
+    const cl=clutchStats(st);
     if(k!==null||d!==null||kd!==null||adr!==null||cl.attempts){
       statMatches++;
       if(k!==null)kills+=k;
@@ -137,6 +137,36 @@ app.get('/api/roster-stats',async(_q,res)=>{
       clutchAttempts+=cl.attempts;clutchWins+=cl.wins;
     }
    });
+   // Player stats do not always expose clutch fields. Use the recent match stats
+   // endpoint as a fallback so CLUTCH stays populated.
+   if(!clutchAttempts){
+    const recent=hi.slice(0,20);
+    let cursor=0;
+    const clutchWorker=async()=>{
+      while(cursor<recent.length){
+        const item=recent[cursor++];
+        try{
+          const ms=await faceit('/matches/'+encodeURIComponent(item.match_id)+'/stats');
+          let found=null;
+          outer: for(const round of ms?.rounds||[]){
+            for(const side of round.teams||[]){
+              for(const p of side.players||[]){
+                if(String(p.player_id||'')===playerId||String(p.nickname||p.game_player_name||'').toLowerCase()===nickname.toLowerCase()){
+                  found=p.player_stats||p.stats||p; break outer;
+                }
+              }
+            }
+          }
+          if(found){
+            const cl=clutchStats(found);
+            clutchAttempts+=cl.attempts;
+            clutchWins+=cl.wins;
+          }
+        }catch(_){}
+      }
+    };
+    await Promise.all([clutchWorker(),clutchWorker(),clutchWorker(),clutchWorker()]);
+   }
    const matches=statMatches||hi.length;
    return {
     nickname,
