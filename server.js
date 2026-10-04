@@ -130,11 +130,17 @@ app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TE
 app.get('/api/players',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
-  const out=ms.map(m=>({
-    id:m.user_id,nickname:m.nickname,avatar:m.avatar||'',country:m.country||'RU',
-    faceitUrl:String(m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
-    skillLevel:m.skill_level??null,elo:m.faceit_elo??null,status:'active',verified:null
-  }));
+  const out=await limitMap(ms,1,async m=>{
+    let p=null;
+    try{p=await faceit('/players/'+encodeURIComponent(m.user_id))}catch(_){}
+    const g=p?.games?.cs2||{};
+    return {
+      id:p?.player_id||m.user_id,nickname:p?.nickname||m.nickname,avatar:p?.avatar||m.avatar||'',country:p?.country||m.country||'RU',
+      faceitUrl:String(p?.faceit_url||m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
+      skillLevel:g.skill_level??m.skill_level??null,elo:g.faceit_elo??m.faceit_elo??null,
+      status:p?.status||'active',verified:p?.verified??null
+    };
+  });
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
