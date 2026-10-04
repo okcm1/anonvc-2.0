@@ -21,6 +21,7 @@ function renderPlayerStats(ps){
 }
 let matchRows=[];
 let expanded=false;
+let activeFilter='TEAM';
 const detailCache=new Map();
 const detailLoading=new Set();
 
@@ -44,13 +45,15 @@ function controlsHtml(total){
  if(total<=2)return '';
  return '<button class="show-all-matches" type="button">'+(expanded?'СКРЫТЬ':'ПОКАЗАТЬ ВСЕ')+' · '+total+' МАТЧЕЙ '+(expanded?'↑':'↓')+'</button>';
 }
+function filteredRows(){return matchRows.filter(m=>m.matchType===activeFilter)}
 function renderMatches(matches){
  matchRows=Array.isArray(matches)?matches:[];
- const visible=expanded?matchRows:matchRows.slice(0,2);
+ const filtered=filteredRows();
+ const visible=expanded?filtered:filtered.slice(0,2);
  const html=visible.length?visible.map(rowHtml).join(''):'';
  $('#recentList').innerHTML=(html||emptyHtml())+controlsHtml(matchRows.length);
  $('#allMatches').innerHTML=(html||'<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this team.</div>')+controlsHtml(matchRows.length);
- $('#matchCount').textContent=matchRows.length?((expanded?matchRows.length:Math.min(2,matchRows.length))+' SHOWN / '+matchRows.length+' TOTAL'):'0 MATCHES';
+ $('#matchCount').textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
  $('#matchesState').textContent=matchRows.length?'LIVE API':'NO FEED';
 
  const last=matchRows[0];
@@ -75,7 +78,15 @@ function renderMatches(matches){
  $('#statsRecord').textContent=team.length?wins+' — '+losses:'—';
  $('#statsGames').textContent=team.length||'—';
  $('#formDots').innerHTML=Array.from({length:10},(_,i)=>{const x=team[i];return '<span class="'+(x?(detailFor(x).won===true?'win':detailFor(x).won===false?'loss':'unknown'):'unknown')+'"></span>'}).join('');
- document.querySelectorAll('.show-all-matches').forEach(b=>b.onclick=()=>{expanded=!expanded;renderMatches(matchRows);if(expanded)loadDetails(matchRows)});
+ document.querySelectorAll('.show-all-matches').forEach(b=>b.onclick=()=>{expanded=!expanded;renderMatches(matchRows);if(expanded)loadDetails(filteredRows())});
+ document.querySelectorAll('.match-tab').forEach(b=>{b.classList.toggle('active',b.dataset.filter===activeFilter);b.onclick=()=>{activeFilter=b.dataset.filter;expanded=false;renderMatches(matchRows);loadDetails(filteredRows().slice(0,2))}});
+ document.querySelectorAll('.match-row-detail').forEach(row=>row.onclick=async e=>{
+   if(e.target.closest('a,button'))return;
+   const id=row.dataset.matchId,m=matchRows.find(x=>x.id===id);
+   if(!m||detailLoading.has(id))return;
+   if(!detailCache.has(id)){detailLoading.add(id);try{const d=await getJson('/api/match/'+encodeURIComponent(id)+'/summary');detailCache.set(id,{...m,...d})}catch(_){}detailLoading.delete(id)}
+   renderMatches(matchRows);
+ });
 }
 async function loadDetails(rows){
  const todo=rows.filter(m=>m.matchType==='TEAM'&&!detailCache.has(m.id)&&!detailLoading.has(m.id));
@@ -104,7 +115,7 @@ async function boot(){
   const [players,matches]=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
   if(Array.isArray(players))renderPlayers(players);
   renderMatches(Array.isArray(matches)?matches:[]);
-  loadDetails((Array.isArray(matches)?matches:[]).slice(0,2));
+  loadDetails(filteredRows().slice(0,2));
   $('#liveState').textContent='FACEIT LINKED';$('#apiState').textContent='ONLINE';
  }catch(e){
   $('#apiState').textContent='ERROR';$('#statsStatus').textContent='FACEIT API ERROR';$('#liveState').textContent='API ERROR';
