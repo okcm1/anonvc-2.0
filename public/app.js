@@ -94,6 +94,7 @@ var expanded=false;
 var activeFilter='TEAM';
 var detailCache=new Map();
 var detailLoading=new Set();
+var performanceOpen=new Set();
 
 function typeLabel(m){
   return m.matchType==='TEAM'?'TEAM MATCH':m.matchType==='STACK'?'STACK · '+m.participantCount+'/5':'SOLO MATCH · 1/5';
@@ -115,9 +116,10 @@ function rowHtml(m){
   var winnerClass=d.won===true?'win':d.won===false?'loss':'unknown';
   var oppRoster=Array.isArray(d.opponentRoster)?d.opponentRoster:[];
   var rosterText=oppRoster.length?oppRoster.map(function(p){return '<span>'+esc(p)+'</span>';}).join(''):'<span>ROSTER DATA PENDING</span>';
-  var detail=d.players && d.players.length ? '<div class="match-expanded"><div class="match-expanded-head">TEAM PERFORMANCE</div>'+
+  var isPerfOpen=performanceOpen.has(String(m.id));
+  var detail=d.players && d.players.length ? '<div class="match-expanded '+(isPerfOpen?'is-open':'is-closed')+'"><button class="match-expanded-toggle" type="button" data-performance-id="'+esc(m.id)+'"><span>// TEAM PERFORMANCE</span><b>'+(isPerfOpen?'HIDE':'SHOW')+' <i>'+(isPerfOpen?'↑':'↓')+'</i></b></button><div class="performance-body">'+
     d.players.slice(0,5).map(function(p){return '<div class="player-line"><b>'+esc(p.nickname)+'</b><span>'+p.kills+'K / '+p.deaths+'D / '+p.assists+'A</span></div>';}).join('')+
-    '</div>' : '';
+    '</div></div>' : '';
   return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
     '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
     '<div class="match-main-info"><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.map||m.map||'CS2')+' · '+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
@@ -239,6 +241,20 @@ function renderMatches(matches){
   document.querySelectorAll('.match-tab').forEach(function(b){
     b.classList.toggle('active',b.dataset.filter===activeFilter);
     b.onclick=function(){activeFilter=b.dataset.filter;expanded=false;renderMatches(matchRows);loadDetails(filteredRows().slice(0,2));};
+  });
+  document.querySelectorAll('.match-expanded-toggle').forEach(function(btn){
+    btn.onclick=async function(e){
+      e.preventDefault(); e.stopPropagation();
+      var id=btn.dataset.performanceId;
+      if(performanceOpen.has(id)){performanceOpen.delete(id);renderMatches(matchRows);return;}
+      if(!detailCache.has(id)){
+        detailLoading.add(id);
+        try{var d=await getJson('/api/match/'+encodeURIComponent(id)+'/summary');var m=matchRows.find(function(x){return x.id===id;});if(m)detailCache.set(id,Object.assign({},m,d));}catch(_){} 
+        detailLoading.delete(id);
+      }
+      performanceOpen.add(id);
+      renderMatches(matchRows);
+    };
   });
   document.querySelectorAll('.match-row-detail').forEach(function(row){
     row.onclick=async function(e){
