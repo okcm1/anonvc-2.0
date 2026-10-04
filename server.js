@@ -161,7 +161,7 @@ app.get('/api/live-match',async(q,res)=>{
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
     if(manualId){
       let m=null;
-      const manualIds=manualId.startsWith('1-')?[manualId,['1-'+manualId,manualId][0]]:['1-'+manualId,manualId];
+      const manualIds=manualId.startsWith('1-')?[manualId,[manualId.slice(2),manualId][0]]:['1-'+manualId,manualId];
       for(const tryId of [...new Set(manualIds)]){
         try{m=await faceit('/matches/'+encodeURIComponent(tryId));if(m)break;}catch(e){if(e?.status!==404)throw e;}
       }
