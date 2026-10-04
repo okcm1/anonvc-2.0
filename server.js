@@ -278,6 +278,39 @@ app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes(
 app.get('/api/team',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID))}catch(e){res.status(503).json({error:e.message})}});
 app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID+'/stats/cs2'))}catch(e){res.status(503).json({error:e.message})}});
 
+app.get('/api/player-presence',async(_q,res)=>{
+ try{
+  const t=await faceit('/teams/'+TEAM_ID),members=t.members||[];
+  const now=Date.now(),cacheAge=15000;
+  const results=await Promise.all(members.map(async member=>{
+   let state='UNKNOWN',matchId=null,matchStatus=null,matchType=null,lastActivity=null;
+   try{
+    const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=5');
+    const recent=(h.items||[]).slice(0,5);
+    lastActivity=recent[0]?.finished_at||recent[0]?.started_at||null;
+    for(const item of recent){
+     if(!item.match_id)continue;
+     try{
+      const m=await faceit('/matches/'+encodeURIComponent(item.match_id));
+      const st=String(m.status||'').toLowerCase();
+      if(['ready','configuring','ongoing','started','in_progress','live'].includes(st)){
+       const participants=(Object.values(m.teams||{}).flatMap(x=>x.roster||x.players||[])).filter(p=>String(p.player_id||p.user_id||'')===String(member.user_id)||String(p.nickname||'').toLowerCase()===String(member.nickname||'').toLowerCase());
+       if(participants.length){matchId=m.match_id;matchStatus=m.status;matchType='MATCH';state='IN_MATCH';break;}
+      }
+     }catch(_){ }
+    }
+    if(state!=='IN_MATCH' && lastActivity){
+     const ts=Number(lastActivity)<100000000000?Number(lastActivity)*1000:Number(lastActivity);
+     if(now-ts<30*60*1000)state='RECENTLY_ACTIVE';
+     else state='NO_RECENT_ACTIVITY';
+    }
+   }catch(_){ }
+   return {nickname:member.nickname,userId:member.user_id,state,matchId,matchStatus,matchType,lastActivity};
+  }));
+  res.json({updatedAt:now,players:results});
+ }catch(e){res.status(503).json({error:e.message})}
+});
+
 app.get('/api/players',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
