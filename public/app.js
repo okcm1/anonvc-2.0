@@ -37,10 +37,14 @@ function renderPlayerStats(players){
 
 function renderMatches(matches){
   const rows = Array.isArray(matches) ? matches : [];
-  const html = rows.map(m => `<div class="match-row"><span class="result ${m.won?'win':'loss'}">${m.won?'WIN':'LOSS'}</span><div><strong>${esc(m.opponent)}</strong><small>${esc(m.map)} · ${esc(m.date)}</small></div><div class="score">${m.ourScore} : ${m.opponentScore}</div><a href="${esc(safeUrl(m.url))}" target="_blank" rel="noopener">FACEIT ↗</a></div>`).join('');
-  $('#recentList').innerHTML = html || '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no team matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
-  $('#allMatches').innerHTML = html || '<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this team.</div>';
-  $('#matchCount').textContent = `${rows.length} MATCH${rows.length===1?'':'ES'}`;
+  const recent = rows.slice(0,10);
+  const typeLabel = m => m.matchType === 'TEAM' ? 'TEAM MATCH' : m.matchType === 'STACK' ? `STACK · ${m.participantCount}/5` : 'SOLO MATCH · 1/5';
+  const rowHtml = m => `<div class="match-row"><span class="result ${m.won?'win':'loss'}">${m.won?'WIN':'LOSS'}</span><div><strong>${esc(typeLabel(m))}</strong><small>${esc(m.opponent)} · ${esc(m.map)} · ${esc(m.date)}</small></div><div class="score">${m.ourScore} : ${m.opponentScore}</div><a href="${esc(safeUrl(m.url))}" target="_blank" rel="noopener">FACEIT ↗</a></div>`;
+  const html = recent.map(rowHtml).join('');
+  const allHtml = rows.map(rowHtml).join('');
+  $('#recentList').innerHTML = html || '<div class="match-row"><span class="result">—</span><div><strong>NO MATCH DATA</strong><small>FACEIT returned no player matches yet.</small></div><div class="score">—</div><span>WAITING</span></div>';
+  $('#allMatches').innerHTML = allHtml || '<div class="panel" style="padding:25px">FACEIT API is connected, but no matches were returned for this team.</div>';
+  $('#matchCount').textContent = `${recent.length} RECENT`;
   $('#matchesState').textContent = rows.length ? 'LIVE API' : 'NO FEED';
 
   const last = rows[0];
