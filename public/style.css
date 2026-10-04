@@ -807,3 +807,9 @@ footer:before{
   .score-winner,.opponent-roster{display:none}
   .match-faceit-link{font-size:8px}
 }
+
+/* ANONVC 2.6b — winner direction */
+.score-winner.loss{color:#ef4b4b}
+.score-winner.unknown{color:#777e87}
+.match-scoreboard .score-winner.loss:before{background:#ef4b4b;box-shadow:0 0 8px rgba(239,75,75,.45)}
+.match-scoreboard .score-winner.unknown:before{background:#777e87;box-shadow:none}
