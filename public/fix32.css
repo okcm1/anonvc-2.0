@@ -276,3 +276,45 @@
 .match-center #liveState{color:#ef313b!important}
 .match-center #liveState:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef313b;box-shadow:0 0 8px rgba(239,49,59,.8);margin-right:6px;vertical-align:1px}
 @media(max-width:900px){.match-center .match-head strong{font-size:58px!important}.match-center:before{font-size:64px}}
+
+/* ANONVC MATCH ROW — cinematic compact scoreboard */
+.all-matches{gap:14px!important}
+.match-card{border:1px solid #262b31!important;border-radius:12px!important;overflow:hidden!important;background:linear-gradient(180deg,#12151a 0%,#0d1014 100%)!important;box-shadow:0 12px 30px rgba(0,0,0,.22)!important}
+.match-card .match-row.match-row-detail{min-height:116px!important;padding:14px 18px!important;background:transparent!important}
+.match-card .match-row.match-row-detail:hover{background:linear-gradient(90deg,rgba(255,32,45,.035),rgba(255,255,255,.012))!important}
+.match-main-info{padding-left:2px!important}
+.match-main-info>strong{font:800 18px/1 "Barlow Condensed"!important;letter-spacing:.3px!important}
+.match-main-info>small{font-size:7px!important;letter-spacing:1px!important;margin-top:6px!important}
+.match-main-info .mvp{margin-top:8px!important;font-size:7px!important;color:#727983!important}
+.match-main-info .mvp b{color:#d9dde1!important}
+.match-scoreboard{grid-template-columns:125px minmax(150px,1fr)!important;gap:0!important;padding:0 20px!important}
+.score-our-label{font:800 8px Inter,sans-serif!important;letter-spacing:1.5px!important;color:#777f88!important;text-transform:uppercase!important}
+.score-value{font:800 34px/1 "Barlow Condensed"!important;text-align:center!important;color:#f4f5f6!important;letter-spacing:1px!important}
+.score-winner{grid-column:1/-1!important;text-align:center!important;margin-top:6px!important}
+.match-opponent{min-width:0!important;border-left:1px solid #252a30!important;padding-left:24px!important}
+.opponent-kicker{font-size:7px!important;letter-spacing:1.5px!important;color:#59616a!important}
+.opponent-name{display:block!important;font:800 24px/1 "Barlow Condensed"!important;margin-top:5px!important;max-width:230px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.opponent-roster{margin-top:8px!important;gap:4px!important;max-height:22px!important}
+.opponent-roster .roster-label{display:none!important}
+.opponent-roster span:not(.roster-label){min-height:18px!important;padding:2px 6px!important;font-size:6px!important}
+.match-faceit-link{font-size:8px!important;font-weight:900!important;letter-spacing:1px!important;color:#e8e9ea!important;border:1px solid #30353c!important;padding:9px 10px!important;border-radius:6px!important;background:#101318!important}
+.match-faceit-link:hover{border-color:#e52a34!important;background:#1a0e10!important}
+.match-expanded{padding:0!important;background:#090c0f!important;border-top:1px solid #252a30!important}
+.match-expanded-head{padding:13px 18px 9px!important;margin:0!important;font-size:7px!important;letter-spacing:1.8px!important;color:#727983!important}
+.match-expanded-head:before{content:"// ";color:#e52a34}
+.match-expanded .player-line{display:grid!important;grid-template-columns:minmax(160px,1fr) 180px!important;align-items:center!important;gap:12px!important;min-height:42px!important;padding:0 18px!important;border-top:1px solid #191d22!important;border-bottom:0!important;font-size:9px!important}
+.match-expanded .player-line b{font:700 14px "Barlow Condensed"!important;color:#dfe2e5!important;letter-spacing:.2px!important}
+.match-expanded .player-line span{font:700 9px Inter,sans-serif!important;color:#858d96!important;text-align:right!important;letter-spacing:.4px!important}
+.match-expanded .player-line:last-child{border-bottom:0!important}
+@media(max-width:1050px){
+ .match-card .match-row.match-row-detail{grid-template-columns:58px minmax(150px,1fr) minmax(300px,1.5fr) 72px!important}
+ .match-scoreboard{padding:0 12px!important;grid-template-columns:95px minmax(120px,1fr)!important}
+ .match-opponent{padding-left:14px!important}
+}
+@media(max-width:720px){
+ .match-card .match-row.match-row-detail{grid-template-columns:52px 1fr!important}
+ .match-scoreboard{grid-column:1/-1!important;grid-template-columns:90px 1fr!important;padding:10px 0 0!important;border-top:1px solid #252a30!important}
+ .match-opponent{grid-column:2!important;border-left:0!important;border-top:1px solid #252a30!important;padding:10px 0 0!important}
+ .match-expanded .player-line{grid-template-columns:1fr!important;min-height:48px!important;padding:6px 14px!important}
+ .match-expanded .player-line span{text-align:left!important}
+}
