@@ -67,9 +67,13 @@ const score=(m,s)=>{
 };
 const winnerFor=(m,s)=>{
   if(!s)return null;
-  if(m?.results?.winner&&s.team_id)return m.results.winner===s.team_id;
+  if(m?.results?.winner){
+    if(s.team_id&&m.results.winner===s.team_id)return true;
+    const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
+    if(entry&&m.results.winner===entry[0])return true;
+    if(s.faction_id&&m.results.winner===s.faction_id)return true;
+  }
   const entry=sideEntries(m.teams).find(sideKey(m.teams,s));
-  if(entry&&m?.results?.winner)return m.results.winner===entry[0];
   for(const dr of m?.detailed_results||[]){
     if(!dr?.winner)continue;
     if(s.team_id&&dr.winner===s.team_id)return true;
