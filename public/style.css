@@ -87,3 +87,5 @@
 .team-perf-empty{padding:25px;color:#626871;font-size:8px;letter-spacing:1px}
 @media(max-width:900px){.stats-analytics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.stats-analytics{grid-template-columns:1fr}.team-perf-row{grid-template-columns:28px 1fr 65px 65px}.team-perf-row span:nth-last-child(-n+2){display:none}}
+
+#roster .roster-metrics{grid-template-columns:repeat(3,1fr)!important}#roster .roster-metrics div{min-height:72px;display:flex;flex-direction:column;justify-content:center;padding:10px 8px;text-align:left}#roster .roster-metrics div:nth-child(3n){border-right:0}#roster .roster-metrics div:last-child{grid-column:1/-1;border-right:0;text-align:left}
