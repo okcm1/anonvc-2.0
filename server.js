@@ -311,6 +311,23 @@ app.get('/api/player-presence',async(_q,res)=>{
  }catch(e){res.status(503).json({error:e.message})}
 });
 
+app.get('/api/player-presence',async(_q,res)=>{
+ try{
+  const t=await faceit('/teams/'+TEAM_ID),members=t.members||[],now=Date.now();
+  const players=await Promise.all(members.map(async member=>{
+   let state='UNKNOWN',matchId=null,lastActivity=null;
+   try{
+    const h=await faceit('/players/'+member.user_id+'/history?game=cs2&limit=5');
+    const recent=h.items||[]; lastActivity=recent[0]?.finished_at||recent[0]?.started_at||null;
+    for(const item of recent){if(!item.match_id)continue;try{const m=await faceit('/matches/'+encodeURIComponent(item.match_id));const st=String(m.status||'').toLowerCase();if(['ready','configuring','ongoing','started','in_progress','live'].includes(st)){const ps=Object.values(m.teams||{}).flatMap(x=>x.roster||x.players||[]);if(ps.some(p=>String(p.player_id||p.user_id||'')===String(member.user_id)||String(p.nickname||'').toLowerCase()===String(member.nickname||'').toLowerCase())){state='IN_MATCH';matchId=m.match_id;break;}}}catch(_){}}
+    if(state!=='IN_MATCH'&&lastActivity){const ts=Number(lastActivity)<100000000000?Number(lastActivity)*1000:Number(lastActivity);state=now-ts<1800000?'RECENTLY_ACTIVE':'NO_RECENT_ACTIVITY';}
+   }catch(_){ }
+   return {nickname:member.nickname,state,matchId,lastActivity};
+  }));
+  res.json({updatedAt:now,players});
+ }catch(e){res.status(503).json({error:e.message})}
+});
+
 app.get('/api/players',async(_q,res)=>{
  try{
   const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
