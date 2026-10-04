@@ -184,7 +184,9 @@ function renderMatches(matches){
   if($('#statsRecord')) $('#statsRecord').textContent=team.length?wins+' — '+losses:'—';
   if($('#statsGames')) $('#statsGames').textContent=team.length||'—';
 
-  renderAdvancedStats(team);\n\n  var dots=$('#formDots');
+  renderAdvancedStats(team);
+
+  var dots=$('#formDots');
   if(dots) dots.innerHTML=Array.from({length:10},function(_,i){
     var x=team[i], c=!x?'unknown':detailFor(x).won===true?'win':detailFor(x).won===false?'loss':'unknown';
     return '<span class="'+c+'"></span>';
@@ -247,7 +249,8 @@ async function boot(){
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
     var unique=Array.from(new Map(first.map(function(x){return [x.id,x];})).values());
-    loadDetails(unique);\n    loadDetails(matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10));
+    loadDetails(unique);
+    loadDetails(matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10));
     if($('#liveState')) $('#liveState').textContent='FACEIT LINKED';
     if($('#apiState')) $('#apiState').textContent='ONLINE';
   }catch(e){
