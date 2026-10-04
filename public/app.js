@@ -105,6 +105,22 @@ function controlsHtml(total){
 }
 function filteredRows(){return matchRows.filter(function(m){return m.matchType===activeFilter;});}
 
+function renderAdvancedStats(team){
+  team=Array.isArray(team)?team:[];
+  var loaded=team.map(function(m){return detailCache.get(m.id);}).filter(function(d){return d&&Array.isArray(d.players)&&d.players.length;});
+  var all=[]; loaded.forEach(function(d){d.players.forEach(function(p){all.push(p);});});
+  var totalKills=0,totalAdr=0,adrN=0,by={};
+  all.forEach(function(p){totalKills+=Number(p.kills)||0;if(p.adr!=null){totalAdr+=Number(p.adr);adrN++;}var e=by[p.nickname]||{nickname:p.nickname,kills:0,deaths:0,assists:0,adr:0,adrN:0};e.kills+=Number(p.kills)||0;e.deaths+=Number(p.deaths)||0;e.assists+=Number(p.assists)||0;if(p.adr!=null){e.adr+=Number(p.adr);e.adrN++;}by[p.nickname]=e;});
+  var top=Object.values(by).sort(function(a,b){return b.kills-a.kills||((b.kills/(b.deaths||1))-(a.kills/(a.deaths||1)));})[0];
+  var avgKills=loaded.length?totalKills/(loaded.length*5):null,avgAdr=adrN?totalAdr/adrN:null;
+  if($('#avgKills'))$('#avgKills').textContent=avgKills==null?'—':avgKills.toFixed(1);
+  if($('#avgAdr'))$('#avgAdr').textContent=avgAdr==null?'—':avgAdr.toFixed(1);
+  if($('#topFragger'))$('#topFragger').textContent=top?top.nickname:'—';
+  if($('#topFraggerMeta'))$('#topFraggerMeta').textContent=top?(top.kills+' K / '+top.deaths+' D / '+top.assists+' A'):'WAITING FOR MATCH DATA';
+  var sf=$('#statsForm');if(sf)sf.innerHTML=team.slice(0,10).map(function(m){var d=detailFor(m),c=d.won===true?'win':d.won===false?'loss':'unknown';return '<span class="'+c+'" title="'+esc((d.ourScore||'—')+' : '+(d.opponentScore||'—'))+'"></span>';}).join('');
+  var tp=$('#teamPerformance');if(tp){var rows=Object.values(by).sort(function(a,b){return b.kills-a.kills;});tp.innerHTML=rows.length?rows.map(function(p,i){var kd=p.deaths?p.kills/p.deaths:p.kills,adr=p.adrN?p.adr/p.adrN:null;return '<div class="team-perf-row"><span class="perf-rank">0'+(i+1)+'</span><b>'+esc(p.nickname)+'</b><span><small>K/D</small>'+kd.toFixed(2)+'</span><span><small>ADR</small>'+(adr==null?'—':adr.toFixed(1))+'</span><span><small>KILLS</small>'+p.kills+'</span><span><small>ASSISTS</small>'+p.assists+'</span></div>';}).join(''):'<div class="team-perf-empty">LOAD TEAM MATCH DETAILS TO BUILD PERFORMANCE</div>';}
+}
+
 function renderMatches(matches){
   matchRows=Array.isArray(matches)?matches:[];
   var filtered=filteredRows();
@@ -166,7 +182,7 @@ function renderMatches(matches){
   if($('#statsRecord')) $('#statsRecord').textContent=team.length?wins+' — '+losses:'—';
   if($('#statsGames')) $('#statsGames').textContent=team.length||'—';
 
-  var dots=$('#formDots');
+  renderAdvancedStats(team);\n\n  var dots=$('#formDots');
   if(dots) dots.innerHTML=Array.from({length:10},function(_,i){
     var x=team[i], c=!x?'unknown':detailFor(x).won===true?'win':detailFor(x).won===false?'loss':'unknown';
     return '<span class="'+c+'"></span>';
@@ -229,7 +245,7 @@ async function boot(){
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
     var unique=Array.from(new Map(first.map(function(x){return [x.id,x];})).values());
-    loadDetails(unique);
+    loadDetails(unique);\n    loadDetails(matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10));
     if($('#liveState')) $('#liveState').textContent='FACEIT LINKED';
     if($('#apiState')) $('#apiState').textContent='ONLINE';
   }catch(e){
