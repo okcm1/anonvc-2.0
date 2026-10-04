@@ -58,7 +58,7 @@ function renderPresence(data){
     var label=state==='IN_MATCH'?'IN MATCH':state==='RECENTLY_ACTIVE'?'RECENTLY ACTIVE':state==='NO_RECENT_ACTIVITY'?'NO RECENT ACTIVITY':'UNKNOWN';
     var dot='<span class="presence-dot presence-'+state.toLowerCase()+'"></span>';
     var target=el.querySelector('.presence-status');
-    if(!target){target=document.createElement('span');target.className='presence-status';el.appendChild(target);}
+    if(!target)return;
     target.innerHTML=dot+label;
     el.classList.toggle('is-in-match',state==='IN_MATCH');
   });
@@ -70,7 +70,7 @@ function renderPlayers(players){
   var m=mergedPlayers(players);
   var list=$('#operatorList'), grid=$('#rosterGrid');
   if(list) list.innerHTML=m.map(function(p){
-    return '<div class="operator"><div class="avatar">'+avatar(p)+'</div><div><strong>'+esc(p.nickname)+'</strong><small>'+esc(p.role||'Operator')+' · FACEIT '+(p.skillLevel==null?'—':p.skillLevel)+'</small></div><span class="lvl">'+(p.elo==null?'—':p.elo)+'</span></div>';
+    return '<div class="operator"><div class="avatar">'+avatar(p)+'</div><div><strong>'+esc(p.nickname)+'</strong><small>'+esc(p.role||'Operator')+' · FACEIT '+(p.skillLevel==null?'—':p.skillLevel)+'</small><span class="presence-status" aria-label="activity"></span></div><span class="lvl">'+(p.elo==null?'—':p.elo)+'</span></div>';
   }).join('');
   if(grid) grid.innerHTML=m.map(function(p){
     return '<article class="panel roster-card" data-player="'+esc(p.nickname)+'"><div class="roster-photo">'+avatar(p)+'</div><div class="roster-identity"><h2>'+esc(p.nickname)+'</h2><p>'+esc(p.role||'Operator')+' · LVL '+(p.skillLevel==null?'—':p.skillLevel)+' · ELO '+(p.elo==null?'—':p.elo)+'</p></div><div class="roster-metrics"><div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div></div><a class="roster-link" href="'+esc(safeUrl(p.faceitUrl))+'" target="_blank" rel="noopener">FACEIT PROFILE ↗</a></article>';
