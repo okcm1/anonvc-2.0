@@ -146,7 +146,17 @@ app.get('/api/live-match',async(q,res)=>{
     const team=await faceit('/teams/'+TEAM_ID);
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
     if(manualId){
-      const m=await faceit('/matches/'+encodeURIComponent(manualId));
+      let m=null;
+      try{
+        m=await faceit('/matches/'+encodeURIComponent(manualId));
+      }catch(e){
+        // A FACEIT room id can become unavailable through Data API.
+        // Fall back to roster-player history instead of breaking live feed.
+        if(e?.status!==404) throw e;
+      }
+      if(!m){
+        // continue into automatic discovery below
+      } else {
       const status=String(m.status||'').toLowerCase();
       const active=['ongoing','started','in_progress','live','ready','configuring'].includes(status);
       if(!active)return res.json(null);
@@ -177,6 +187,7 @@ app.get('/api/live-match',async(q,res)=>{
       };
       lastLiveMatch=payload;
       return res.json(payload);
+      }
     }
     
     const candidates=new Map();
