@@ -119,7 +119,7 @@ async function boot(){
   const [players,matches]=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
   if(Array.isArray(players))renderPlayers(players);
   renderMatches(Array.isArray(matches)?matches:[]);
-  loadDetails([...new Map([...filteredRows().slice(0,2), ...(live?[live]:[])].map(x=>[x.id,x])).values()]);
+  const liveBoot=matchRows.find(x=>['ongoing','started','in_progress','live'].includes(String(x.status||'').toLowerCase()));loadDetails([...new Map([...filteredRows().slice(0,2), ...(liveBoot?[liveBoot]:[])].map(x=>[x.id,x])).values()]);
   $('#liveState').textContent='FACEIT LINKED';$('#apiState').textContent='ONLINE';
  }catch(e){
   $('#apiState').textContent='ERROR';$('#statsStatus').textContent='FACEIT API ERROR';$('#liveState').textContent='API ERROR';
