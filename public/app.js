@@ -275,11 +275,19 @@ function renderLiveMatch(live){
 
 var livePollBusy=false;
 var liveUiCache=null;
+function manualLiveMatchId(){
+  try{
+    var q=new URLSearchParams(location.search).get('matchId')||localStorage.getItem('anonvc:liveMatchId')||'';
+    return String(q).trim();
+  }catch(_){return '';}
+}
+
 async function pollLiveFeed(){
   if(livePollBusy)return;
   livePollBusy=true;
   try{
-    var live=await getJson('/api/live-match').catch(function(){return null;});
+    var manualId=manualLiveMatchId();
+    var live=await getJson('/api/live-match'+(manualId?'?matchId='+encodeURIComponent(manualId):'')).catch(function(){return null;});
     if(live){renderLiveMatch(live);}
     var fresh=await getJson('/api/matches');
     if(live){ return; }
@@ -299,6 +307,10 @@ async function pollLiveFeed(){
 }
 
 async function boot(){
+  try{
+    var qid=new URLSearchParams(location.search).get('matchId');
+    if(qid)localStorage.setItem('anonvc:liveMatchId',String(qid).trim());
+  }catch(_){ }
   renderPlayers(FALLBACK);
   try{
     var status=await getJson('/api/status');
