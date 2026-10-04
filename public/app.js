@@ -232,6 +232,28 @@ async function getJson(url){
   return d;
 }
 
+
+var livePollBusy=false;
+async function pollLiveFeed(){
+  if(livePollBusy)return;
+  livePollBusy=true;
+  try{
+    var fresh=await getJson('/api/matches');
+    if(Array.isArray(fresh)){
+      var oldIds=new Set(matchRows.map(function(x){return x.id;}));
+      var newLive=fresh.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+      var current=matchRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+      renderMatches(fresh);
+      if(newLive && (!current || newLive.id!==current.id || !oldIds.has(newLive.id))) loadDetails([newLive]);
+      else {
+        var live=fresh.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
+        if(live) loadDetails([live]);
+      }
+    }
+  }catch(e){console.warn('Live feed refresh failed:',e.message);}
+  livePollBusy=false;
+}
+
 async function boot(){
   renderPlayers(FALLBACK);
   try{
@@ -260,4 +282,4 @@ async function boot(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,15000);});
