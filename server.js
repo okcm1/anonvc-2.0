@@ -152,6 +152,12 @@ app.get('/api/live-match',async(q,res)=>{
         const key=String(p.player_id||p.nickname||'').toLowerCase();
         if(!participants.some(x=>String(x).toLowerCase()===key))participants.push(p.nickname||p.game_player_name);
       }
+      if(!participants.length){
+        for(const pid of m.playing_players||[]){
+          const member=ms.find(x=>String(x.user_id)===String(pid));
+          if(member&&!participants.includes(member.nickname))participants.push(member.nickname);
+        }
+      }
       if(!participants.length)return res.status(403).json({error:'Match does not contain an AnonVC player'});
       const payload={
         id:m.match_id,url:m.faceit_url,status,
@@ -227,6 +233,20 @@ app.get('/api/live-match',async(q,res)=>{
     }
     lastLiveMatch=null;
     res.json(null);
+  }catch(e){res.status(503).json({error:e.message})}
+});
+app.get('/api/live-debug',async(q,res)=>{
+  try{
+    const id=String(q.query.matchId||'').trim();
+    if(!id)return res.status(400).json({error:'matchId required'});
+    const m=await faceit('/matches/'+encodeURIComponent(id));
+    const team=await faceit('/teams/'+TEAM_ID);
+    const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
+    const sides=Object.values(m.teams||{}),os=ourSide(m.teams,ids,names),opp=sides.find(s=>s!==os);
+    const participants=[];
+    for(const side of sides)for(const p of side.roster||side.players||[])if(ours(p,ids,names))participants.push(p.nickname||p.game_player_name||p.player_id);
+    for(const pid of m.playing_players||[]){const member=ms.find(x=>String(x.user_id)===String(pid));if(member&&!participants.includes(member.nickname))participants.push(member.nickname);}
+    res.json({ok:true,id:m.match_id,status:m.status,score:m.results?.score||null,ourScore:score(m,os),opponentScore:score(m,opp),participants,teamKeys:Object.keys(m.teams||{}),faceitUrl:m.faceit_url||null});
   }catch(e){res.status(503).json({error:e.message})}
 });
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
