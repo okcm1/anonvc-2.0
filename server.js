@@ -81,30 +81,59 @@ const rosterStatsCacheTtl=120000;
 
 app.use(express.static(path.join(__dirname,'public')));
 const liveMatchIds=new Map();
+const liveMatchMeta=new Map();
 let lastWebhook={receivedAt:null,event:null,matchId:null};
 
-// FACEIT callback health/check endpoint. FACEIT sends webhook events via POST;
+// FACEIT callback health/check endpoint. FACEIT sends webhook events via POST.
 // GET/HEAD are also handled so the callback URL is reachable for endpoint checks.
 app.get('/api/faceit/webhook',(_req,res)=>res.status(200).json({ok:true,service:'AnonVC 2.0 webhook'}));
 app.head('/api/faceit/webhook',(_req,res)=>res.sendStatus(200));
 
+// FACEIT webhook payloads can differ slightly between event types.
+// Walk the payload recursively so match_id is found even when nested.
+const findMatchId=(value,depth=0)=>{
+  if(value==null||depth>6)return null;
+  if(Array.isArray(value)){
+    for(const item of value){const found=findMatchId(item,depth+1);if(found)return found;}
+    return null;
+  }
+  if(typeof value!=='object')return null;
+  for(const key of ['match_id','matchId']){
+    if(value[key])return String(value[key]);
+  }
+  for(const key of Object.keys(value)){
+    const found=findMatchId(value[key],depth+1);
+    if(found)return found;
+  }
+  return null;
+};
+
 app.post('/api/faceit/webhook',express.json({limit:'256kb'}),(req,res)=>{
   const body=req.body||{};
-  const event=String(body.event||body.type||body.event_type||body.name||'').toLowerCase();
-  const payload=body.payload||body.data||body;
-  const id=payload.match_id||payload.matchId||payload.match?.match_id||payload.id||body.match_id||body.matchId;
-  lastWebhook={receivedAt:Date.now(),event:event||null,matchId:id?String(id):null};
+  const event=String(body.event||body.type||body.event_type||body.name||body.eventName||'').toLowerCase();
+  const id=findMatchId(body);
+  lastWebhook={receivedAt:Date.now(),event:event||null,matchId:id||null};
+
   if(id){
-    const key=String(id);
-    liveMatchIds.set(key,Date.now());
+    const now=Date.now(),key=String(id);
+    liveMatchIds.set(key,now);
+    liveMatchMeta.set(key,{event,receivedAt:now});
     if(event.includes('finished')||event.includes('cancelled')||event.includes('aborted')){
-      setTimeout(()=>liveMatchIds.delete(key),300000);
+      setTimeout(()=>{
+        liveMatchIds.delete(key);
+        liveMatchMeta.delete(key);
+      },300000);
     }
   }
   res.status(200).json({ok:true});
 });
 
-app.get('/api/webhook-status',(_req,res)=>res.json({ok:true,lastWebhook}));
+app.get('/api/webhook-status',(_req,res)=>res.json({
+  ok:true,
+  lastWebhook,
+  trackedMatches:[...liveMatchIds.keys()],
+  trackedCount:liveMatchIds.size
+}));
 
 app.get('/api/live-match',async(_q,res)=>{
   try{
