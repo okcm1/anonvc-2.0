@@ -114,24 +114,22 @@ function rowHtml(m){
   var winner=d.winnerTeam||(d.won===true?ourTeam:d.won===false?opponentTeam:'');
   var resultText=winner?(winner===ourTeam?'ANONVC WIN':'OPPONENT WIN'):'RESULT PENDING';
   var winnerClass=d.won===true?'win':d.won===false?'loss':'unknown';
+  var ourRoster=Array.isArray(d.ourRoster)?d.ourRoster:[];
   var oppRoster=Array.isArray(d.opponentRoster)?d.opponentRoster:[];
-  var rosterText=oppRoster.length?oppRoster.map(function(p){return '<span>'+esc(p)+'</span>';}).join(''):'<span>ROSTER DATA PENDING</span>';
+  var rosterHtml=function(list){return list.length?list.slice(0,5).map(function(p){return '<span>'+esc(p)+'</span>';}).join(''):'<span>ROSTER PENDING</span>';};
   var isPerfOpen=performanceOpen.has(String(m.id));
   var detail=d.players && d.players.length ? '<div class="match-expanded '+(isPerfOpen?'is-open':'is-closed')+'"><button class="match-expanded-toggle" type="button" data-performance-id="'+esc(m.id)+'"><span>// TEAM PERFORMANCE</span><b>'+(isPerfOpen?'HIDE':'SHOW')+' <i>'+(isPerfOpen?'↑':'↓')+'</i></b></button><div class="performance-body">'+
     d.players.slice(0,5).map(function(p){return '<div class="player-line"><b>'+esc(p.nickname)+'</b><span>'+p.kills+'K / '+p.deaths+'D / '+p.assists+'A</span></div>';}).join('')+
     '</div></div>' : '';
   return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
     '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
-    '<div class="match-main-info"><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.map||m.map||'CS2')+' · '+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
+    '<div class="match-main-info"><strong>'+esc(d.map||m.map||'CS2')+'</strong><small>'+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
     '<div class="match-scoreboard">'+
-      '<small class="score-our-label">'+esc(ourTeam)+'</small>'+
+      '<small class="match-type-top">'+esc(typeLabel(m))+'</small>'+
+      '<div class="team-side team-side-our"><b>'+esc(ourTeam)+'</b><div class="team-lineup">'+rosterHtml(ourRoster)+'</div></div>'+
       '<b class="score-value">'+score+'</b>'+
+      '<div class="team-side team-side-opp"><b>'+esc(opponentTeam)+'</b><div class="team-lineup">'+rosterHtml(oppRoster)+'</div></div>'+
       '<small class="score-winner '+winnerClass+'">'+esc(resultText)+'</small>'+
-    '</div>'+
-    '<div class="match-opponent">'+
-      '<small class="opponent-kicker">OPPONENT</small>'+
-      '<strong class="opponent-name">'+esc(opponentTeam)+'</strong>'+
-      '<div class="opponent-roster"><span class="roster-label">LINEUP</span>'+rosterText+'</div>'+
     '</div>'+
     '<a class="match-faceit-link" href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
     '</div>'+detail+'</div>';
