@@ -58,6 +58,7 @@ function renderPlayers(players){
     return '<article class="panel roster-card" data-player="'+esc(p.nickname)+'"><div class="roster-photo">'+avatar(p)+'</div><div class="roster-identity"><h2>'+esc(p.nickname)+'</h2><p>'+esc(p.role||'Operator')+' · LVL '+(p.skillLevel==null?'—':p.skillLevel)+' · ELO '+(p.elo==null?'—':p.elo)+'</p></div><div class="roster-metrics"><div><small>MATCHES</small><b>—</b></div><div><small>K/D</small><b>—</b></div><div><small>ADR</small><b>—</b></div><div><small>CLUTCH</small><b>—</b></div><div><small>WINRATE</small><b>—</b></div></div><a class="roster-link" href="'+esc(safeUrl(p.faceitUrl))+'" target="_blank" rel="noopener">FACEIT PROFILE ↗</a></article>';
   }).join('');
   renderRosterPerformance(m.map(function(p){return Object.assign({nickname:p.nickname,matches:null},p.rosterStats||{});}));
+  window.dispatchEvent(new CustomEvent('anonvc:roster-rendered'));
   renderPlayerStats(m);
 }
 
@@ -280,7 +281,7 @@ async function boot(){
     var result=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
     if(Array.isArray(result[0]))renderPlayers(result[0]);
     renderMatches(Array.isArray(result[1])?result[1]:[]);
-    getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
+    getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);window.dispatchEvent(new CustomEvent('anonvc:roster-stats'));}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
     var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live'].indexOf(String(x.status||'').toLowerCase())>=0;});
     var first=filteredRows().slice(0,2);
     if(liveBoot)first.push(liveBoot);
