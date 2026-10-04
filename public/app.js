@@ -22,10 +22,20 @@ var avatar = function(p){
 };
 var mergedPlayers = function(ps){
   ps=Array.isArray(ps)?ps:[];
-  return FALLBACK.map(function(f){
-    var found=ps.find(function(p){return p.nickname===f.nickname;});
+  // The site roster is authoritative: never let a temporary FACEIT/API response
+  // hide one of the five registered AnonVC players.
+  var result=FALLBACK.map(function(f){
+    var found=ps.find(function(p){
+      return String(p.nickname||'').toLowerCase()===String(f.nickname||'').toLowerCase();
+    });
     return Object.assign({},f,found||{});
   });
+  ps.forEach(function(p){
+    if(!p||!p.nickname)return;
+    var exists=result.some(function(x){return String(x.nickname).toLowerCase()===String(p.nickname).toLowerCase();});
+    if(!exists)result.push(p);
+  });
+  return result;
 };
 
 var rosterPerformance={};
@@ -330,10 +340,12 @@ async function boot(){
     renderMatches(Array.isArray(result[1])?result[1]:[]);
     getJson('/api/roster-stats').then(function(stats){renderRosterPerformance(stats);}).catch(function(e){console.warn('Roster stats unavailable:',e.message);});
     var liveBoot=matchRows.find(function(x){return ['ongoing','started','in_progress','live','ready','configuring'].indexOf(String(x.status||'').toLowerCase())>=0;});
-    var first=filteredRows().slice(0,2);
-    if(liveBoot)first.push(liveBoot);
-    var unique=Array.from(new Map(first.map(function(x){return [x.id,x];})).values());
-    loadDetails(unique);
+    // Load the recent TEAM matches in the background so STATS has real
+    // player data instead of staying on dashes after only the first two cards.
+    var recentTeam=matchRows.filter(function(x){return x.matchType==='TEAM';}).slice(0,10);
+    if(liveBoot)recentTeam.unshift(liveBoot);
+    var unique=Array.from(new Map(recentTeam.map(function(x){return [x.id,x];})).values());
+    loadDetails(unique.slice(0,10));
     if($('#liveState')) $('#liveState').textContent='FACEIT LINKED';
     if($('#apiState')) $('#apiState').textContent='ONLINE';
   }catch(e){
