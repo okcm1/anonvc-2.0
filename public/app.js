@@ -57,15 +57,18 @@ function renderMatches(matches){
  $('#matchCount').textContent=filtered.length?((expanded?filtered.length:Math.min(2,filtered.length))+' SHOWN / '+filtered.length+' '+activeFilter):'0 MATCHES';
  $('#matchesState').textContent=matchRows.length?'LIVE API':'NO FEED';
 
- const last=matchRows[0];
+ const live=matchRows.find(x=>['ongoing','started','in_progress','live'].includes(String(x.status||'').toLowerCase()));
+ const last=live||matchRows[0];
  if(last){
   const d=detailFor(last);
-  $('#heroScore').textContent=d.ourScore!=null&&d.opponentScore!=null?d.ourScore+' : '+d.opponentScore:'— : —';
-  $('#heroOpponent').textContent=d.opponent||'WAITING';
-  $('#heroMap').textContent=d.map||'CS2';
-  $('#heroDate').textContent=last.date;
+  $('#heroOurScore').textContent=d.ourScore!=null?d.ourScore:'—';
+  $('#heroOpponentScore').textContent=d.opponentScore!=null?d.opponentScore:'—';
+  $('#heroOpponent').textContent=d.opponent||last.opponent||'WAITING';
+  $('#heroMap').textContent=d.map||last.map||'CS2';
+  $('#heroDate').textContent=last.date||'—';
+  $('#liveState').textContent=live?'LIVE MATCH':'FACEIT LINKED';
  }else{
-  $('#heroScore').textContent='— : —';$('#heroOpponent').textContent='NO DATA';$('#heroMap').textContent='NO MATCH LOADED';$('#heroDate').textContent='—';
+  $('#heroOurScore').textContent='—';$('#heroOpponentScore').textContent='—';$('#heroOpponent').textContent='NO DATA';$('#heroMap').textContent='NO MATCH LOADED';$('#heroDate').textContent='—';
  }
  $('#nextOpponent').textContent='—';$('#nextMeta').textContent='No upcoming match in feed';
 
@@ -116,7 +119,7 @@ async function boot(){
   const [players,matches]=await Promise.all([getJson('/api/players'),getJson('/api/matches')]);
   if(Array.isArray(players))renderPlayers(players);
   renderMatches(Array.isArray(matches)?matches:[]);
-  loadDetails(filteredRows().slice(0,2));
+  loadDetails([...new Map([...filteredRows().slice(0,2), ...(live?[live]:[])].map(x=>[x.id,x])).values()]);
   $('#liveState').textContent='FACEIT LINKED';$('#apiState').textContent='ONLINE';
  }catch(e){
   $('#apiState').textContent='ERROR';$('#statsStatus').textContent='FACEIT API ERROR';$('#liveState').textContent='API ERROR';
