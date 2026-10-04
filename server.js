@@ -10,7 +10,9 @@ const apiCache=new Map();
 const apiInflight=new Map();
 let apiTail=Promise.resolve();
 let lastApiRequestAt=0;
-const API_CACHE_TTL=45000;
+const API_CACHE_TTL=300000;
+const PLAYER_DETAIL_TTL=900000;
+const playerDetailCache=new Map();
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function faceit(endpoint){
   if(!KEY||KEY.includes('PASTE_YOUR'))throw new Error('FACEIT_API_KEY is not configured');
@@ -30,7 +32,7 @@ async function faceit(endpoint){
         return data;
       }
       lastStatus=r.status;
-      if(r.status===429){await sleep(1200*(attempt+1));continue;}
+      if(r.status===429){await sleep(5000*(attempt+1));continue;}
       throw new Error('FACEIT API '+r.status);
     }
     throw new Error('FACEIT API '+lastStatus);
@@ -113,12 +115,22 @@ app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TE
 
 app.get('/api/players',async(_q,res)=>{
  try{
-  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[];
-  const out=ms.map(m=>({
-    id:m.user_id,nickname:m.nickname,avatar:m.avatar||'',country:m.country||'',
-    faceitUrl:String(m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
-    skillLevel:m.skill_level??null,elo:m.faceit_elo??null
-  }));
+  const t=await faceit('/teams/'+TEAM_ID),ms=t.members||[],out=[];
+  for(const m of ms){
+   const key=String(m.user_id||m.nickname||'');
+   let d=playerDetailCache.get(key);
+   if(!d||Date.now()-d.at>PLAYER_DETAIL_TTL){
+    try{d={at:Date.now(),data:await faceit('/players/'+encodeURIComponent(m.user_id))};playerDetailCache.set(key,d)}catch(_){d=d||null;}
+   }
+   const p=d?.data||{};
+   const g=p.games?.cs2||{};
+   out.push({
+    id:p.player_id||m.user_id,nickname:p.nickname||m.nickname,avatar:p.avatar||m.avatar||'',country:p.country||m.country||'',
+    faceitUrl:String(p.faceit_url||m.faceit_url||'').replace('{lang}','ru')||playerUrl(m.nickname),
+    skillLevel:g.skill_level??m.skill_level??null,elo:g.faceit_elo??m.faceit_elo??null,
+    status:p.status||'active',verified:p.verified??null
+   });
+  }
   res.json(out);
  }catch(e){res.status(503).json({error:e.message})}
 });
