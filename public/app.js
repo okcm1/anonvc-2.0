@@ -260,6 +260,7 @@ async function getJson(url){
 
 function renderLiveMatch(live){
   if(!live)return;
+  liveUiCache=live;
   if($('#heroOurScore'))$('#heroOurScore').textContent=live.ourScore!=null?live.ourScore:'0';
   if($('#heroOpponentScore'))$('#heroOpponentScore').textContent=live.opponentScore!=null?live.opponentScore:'0';
   if($('#heroOpponent'))$('#heroOpponent').textContent=live.opponent||'WAITING';
@@ -273,6 +274,7 @@ function renderLiveMatch(live){
 }
 
 var livePollBusy=false;
+var liveUiCache=null;
 async function pollLiveFeed(){
   if(livePollBusy)return;
   livePollBusy=true;
@@ -324,4 +326,4 @@ async function boot(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,5000);});
+document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,2000);});
