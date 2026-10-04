@@ -813,3 +813,128 @@ footer:before{
 .score-winner.unknown{color:#777e87}
 .match-scoreboard .score-winner.loss:before{background:#ef4b4b;box-shadow:0 0 8px rgba(239,75,75,.45)}
 .match-scoreboard .score-winner.unknown:before{background:#777e87;box-shadow:none}
+
+
+/* ANONVC 2.7 — MATCHES / OPPONENT INTEL LAYOUT
+   Clear broadcast hierarchy: match info -> score center -> opponent + lineup right.
+   Search keeps working because opponent and lineup are real text in the DOM. */
+.match-row.match-row-detail{
+  grid-template-columns:75px minmax(170px,1fr) minmax(120px,170px) minmax(250px,360px) 90px;
+  min-height:104px;
+}
+.match-score-center{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:0 10px;
+  border-left:1px solid var(--line);
+  border-right:1px solid var(--line);
+}
+.match-score-center .score-label,
+.match-opponent .opponent-kicker{
+  display:block;
+  color:#555c65;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:1.5px;
+  margin:0 0 5px;
+}
+.match-score-center>b{
+  font-family:"Barlow Condensed",sans-serif;
+  font-size:31px;
+  line-height:1;
+  letter-spacing:1.5px;
+  white-space:nowrap;
+}
+.match-score-center .score-winner{
+  margin-top:6px;
+}
+.match-opponent{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:0 12px;
+}
+.match-opponent>strong{
+  display:block;
+  font-family:"Barlow Condensed",sans-serif;
+  font-size:22px;
+  line-height:1;
+  letter-spacing:.5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#f0f2f4;
+}
+.match-opponent .opponent-roster{
+  margin-top:9px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+}
+.match-opponent .opponent-roster>span:not(.roster-label){
+  color:#9ba2aa;
+  font-size:7px;
+  padding:2px 5px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:4px;
+  background:rgba(255,255,255,.018);
+  flex:0 0 auto;
+}
+.match-opponent .roster-label{
+  flex:0 0 auto;
+  color:#555c65!important;
+  font-size:6px!important;
+  font-weight:800;
+  letter-spacing:1px;
+}
+@media(max-width:1050px){
+  .match-row.match-row-detail{
+    grid-template-columns:68px minmax(140px,1fr) minmax(100px,130px) minmax(210px,290px) 78px;
+  }
+  .match-score-center>b{font-size:26px}
+  .match-opponent>strong{font-size:19px}
+}
+@media(max-width:720px){
+  .match-row.match-row-detail{
+    grid-template-columns:58px minmax(0,1fr) 78px;
+    min-height:104px;
+  }
+  .match-score-center{
+    border-left:0;
+    border-right:0;
+    padding:0 4px;
+  }
+  .match-score-center .score-label{display:none}
+  .match-score-center>b{font-size:21px}
+  .match-score-center .score-winner{display:none}
+  .match-opponent{
+    grid-column:2/-1;
+    grid-row:2;
+    border-top:1px solid var(--line);
+    padding:8px 0 0;
+    margin-top:4px;
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+  }
+  .match-opponent .opponent-kicker{display:none}
+  .match-opponent>strong{
+    font-size:17px;
+    flex:0 1 auto;
+    max-width:38%;
+  }
+  .match-opponent .opponent-roster{
+    margin-top:0;
+    flex:1;
+  }
+  .match-faceit-link{grid-column:3;grid-row:1;font-size:8px;text-align:center}
+}
