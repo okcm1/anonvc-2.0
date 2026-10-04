@@ -103,8 +103,16 @@ function rowHtml(m){
   return '<div class="match-card"><div class="match-row match-row-detail" data-match-id="'+esc(m.id)+'">'+
     '<span class="result '+resultClass(d)+'">'+resultLabel(d)+'</span>'+
     '<div class="match-main-info"><strong>'+esc(typeLabel(m))+'</strong><small>'+esc(d.map||m.map||'CS2')+' · '+esc(m.date||'—')+'</small>'+mvpHtml(m)+'</div>'+
-    '<div class="match-score-center"><small class="score-label">SCORE</small><b>'+score+'</b><small class="score-winner '+winnerClass+'">'+esc(resultText)+'</small></div>'+
-    '<div class="match-opponent"><small class="opponent-kicker">OPPONENT</small><strong>'+esc(opponentTeam)+'</strong><div class="opponent-roster"><span class="roster-label">LINEUP</span>'+rosterText+'</div></div>'+
+    '<div class="match-scoreboard">'+
+      '<small class="score-our-label">'+esc(ourTeam)+'</small>'+
+      '<b class="score-value">'+score+'</b>'+
+      '<small class="score-winner '+winnerClass+'">'+esc(resultText)+'</small>'+
+    '</div>'+
+    '<div class="match-opponent">'+
+      '<small class="opponent-kicker">OPPONENT</small>'+
+      '<strong class="opponent-name">'+esc(opponentTeam)+'</strong>'+
+      '<div class="opponent-roster"><span class="roster-label">LINEUP</span>'+rosterText+'</div>'+
+    '</div>'+
     '<a class="match-faceit-link" href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">FACEIT ↗</a>'+
     '</div>'+detail+'</div>';
 }
