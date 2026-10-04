@@ -136,7 +136,37 @@ app.get('/api/webhook-status',(_req,res)=>res.json({
   trackedCount:liveMatchIds.size
 }));
 
-app.get('/api/live-match',async(_q,res)=>{
+app.get('/api/live-match',async(q,res)=>{
+  try{
+    const manualId=String(q.query.matchId||q.query.match||'').trim();
+    const team=await faceit('/teams/'+TEAM_ID);
+    const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
+    if(manualId){
+      const m=await faceit('/matches/'+encodeURIComponent(manualId));
+      const status=String(m.status||'').toLowerCase();
+      const sides=Object.values(m.teams||{}),os=ourSide(m.teams,ids,names),opp=sides.find(side=>side!==os);
+      const participants=[];
+      for(const side of sides)for(const p of side.roster||side.players||[])if(ours(p,ids,names)){
+        const key=String(p.player_id||p.nickname||'').toLowerCase();
+        if(!participants.some(x=>String(x).toLowerCase()===key))participants.push(p.nickname||p.game_player_name);
+      }
+      if(!participants.length)return res.status(403).json({error:'Match does not contain an AnonVC player'});
+      const payload={
+        id:m.match_id,url:m.faceit_url,status,
+        opponent:opp?.nickname||opp?.name||'FACEIT MATCH',
+        opponentTeam:opp?.nickname||opp?.name||'FACEIT MATCH',
+        opponentRoster:(opp?.roster||opp?.players||[]).map(p=>p?.nickname||p?.game_player_name||'').filter(Boolean),
+        ourScore:score(m,os),opponentScore:score(m,opp),
+        date:m.started_at?new Date(Number(m.started_at)*1000).toLocaleDateString('ru-RU'):'—',
+        timestamp:m.started_at||Date.now(),
+        map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',
+        matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',
+        participantCount:participants.length,participants,live:true,manual:true,updatedAt:Date.now()
+      };
+      lastLiveMatch=payload;
+      return res.json(payload);
+    }
+    
   try{
     const team=await faceit('/teams/'+TEAM_ID);
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
