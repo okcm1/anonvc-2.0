@@ -77,36 +77,96 @@ app.get('/api/matches', async (_req, res) => {
   try {
     const team = await faceit(`/teams/${TEAM_ID}`);
     const members = team.members || [];
+    const rosterIds = new Set(members.map(m => String(m.user_id)));
+    const rosterNames = new Set(members.map(m => String(m.nickname || '').toLowerCase()));
     const matches = new Map();
+
+    // FACEIT player history already contains the two sides and their players.
+    // We use that data directly instead of calling /matches for every match.
+    // This keeps the endpoint fast and avoids duplicates/timeouts.
     await Promise.all(members.map(async member => {
       try {
-        const history = await faceit(`/players/${member.user_id}/history?game=cs2&limit=100`);
+        const history = await faceit(`/players/${member.user_id}/history?game=cs2&limit=30`);
         for (const match of history.items || []) {
-          const sides = Object.values(match.teams || {});
-          if (sides.some(t => t.team_id === TEAM_ID)) matches.set(match.match_id, match);
+          if (!match.match_id || matches.has(match.match_id)) {
+            if (match.match_id && !matches.has(match.match_id)) matches.set(match.match_id, match);
+            continue;
+          }
+          matches.set(match.match_id, match);
         }
       } catch (_) {}
     }));
 
     const output = [...matches.values()]
       .sort((a, b) => (b.finished_at || b.started_at || 0) - (a.finished_at || a.started_at || 0))
-      .slice(0, 20)
+      .slice(0, 30)
       .map(match => {
         const sides = Object.values(match.teams || {});
-        const opponent = sides.find(t => t.team_id !== TEAM_ID);
+        const participantSet = new Set();
+        const participants = [];
+
+        for (const side of sides) {
+          for (const player of (side.players || [])) {
+            const id = String(player.player_id || '');
+            const nickname = String(player.nickname || player.game_player_name || '');
+            const isOurs = (id && rosterIds.has(id)) || (nickname && rosterNames.has(nickname.toLowerCase()));
+            if (isOurs) {
+              const key = id || nickname.toLowerCase();
+              if (!participantSet.has(key)) {
+                participantSet.add(key);
+                participants.push(nickname);
+              }
+            }
+          }
+        }
+
+        // Some history responses expose playing_players instead of full team rosters.
+        if (!participants.length && Array.isArray(match.playing_players)) {
+          for (const id of match.playing_players) {
+            if (rosterIds.has(String(id))) {
+              const member = members.find(m => String(m.user_id) === String(id));
+              if (member) participants.push(member.nickname);
+            }
+          }
+        }
+
+        const count = participants.length;
+        if (count < 1) return null;
+
+        const matchType = count === 5 ? 'TEAM' : count >= 2 ? 'STACK' : 'SOLO';
+        const ourSide = sides.find(side => (side.players || []).some(p => {
+          const id = String(p.player_id || '');
+          const nickname = String(p.nickname || p.game_player_name || '').toLowerCase();
+          return rosterIds.has(id) || rosterNames.has(nickname);
+        }));
+        const opponent = sides.find(side => side !== ourSide);
+
         const scores = match.results?.score || {};
+        const ourScore = ourSide?.team_id && scores[ourSide.team_id] != null
+          ? scores[ourSide.team_id]
+          : null;
+        const opponentScore = opponent?.team_id && scores[opponent.team_id] != null
+          ? scores[opponent.team_id]
+          : null;
+
         return {
           id: match.match_id,
           url: match.faceit_url,
           status: match.status,
-          won: match.results?.winner === TEAM_ID,
-          opponent: opponent?.nickname || 'UNKNOWN',
-          ourScore: scores[TEAM_ID] ?? 0,
-          opponentScore: opponent ? (scores[opponent.team_id] ?? 0) : 0,
+          won: ourSide?.team_id ? match.results?.winner === ourSide.team_id : false,
+          opponent: opponent?.nickname || 'FACEIT MATCH',
+          ourScore: ourScore ?? 0,
+          opponentScore: opponentScore ?? 0,
           date: match.finished_at ? new Date(match.finished_at).toLocaleDateString('ru-RU') : '—',
-          map: match.game_data?.map || match.game_data?.maps?.[0] || 'CS2'
+          timestamp: match.finished_at || match.started_at || 0,
+          map: match.game_data?.map || match.game_data?.maps?.[0] || 'CS2',
+          matchType,
+          participantCount: count,
+          participants
         };
-      });
+      })
+      .filter(Boolean);
+
     res.json(output);
   } catch (e) { res.status(503).json({ error: e.message }); }
 });
