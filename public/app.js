@@ -75,6 +75,7 @@ var expanded=false;
 var activeFilter='TEAM';
 var detailCache=new Map();
 var detailLoading=new Set();
+var collapsedDetails=new Set();
 
 function typeLabel(m){
   return m.matchType==='TEAM'?'TEAM MATCH':m.matchType==='STACK'?'STACK · '+m.participantCount+'/5':'SOLO MATCH · 1/5';
@@ -108,19 +109,27 @@ function rosterPlayer(p,idx){
   '</div>';
 }
 function expandedIntel(m,d){
-  if(!d||!d.detailsLoaded)return '';
+  if(!d||!d.detailsLoaded||collapsedDetails.has(m.id))return '';
   var ours=d.players||[],opp=d.opponentPlayers||[],ourRoster=d.ourRoster||[],oppRoster=d.opponentRoster||[];
   var ourRows=ours.length?ours.slice(0,5).map(intelPlayer).join(''):'<div class="intel-empty">СТАТИСТИКА ОЖИДАЕТСЯ</div>';
   var oppRows=(opp.length?opp:oppRoster).slice(0,5).map(rosterPlayer).join('');
+  var ourTeam=d.ourTeam||'ANONVC';
+  var opponentTeam=d.opponentTeam||d.opponent||'OPPONENT';
   return '<div class="match-expanded">'+
     '<div class="match-expanded-top">'+
-      '<div><small>MATCH INTEL</small><b>'+esc(d.map||m.map||'CS2')+'</b><span>'+esc(d.date||m.date||'—')+' · '+esc(String(d.status||m.status||'').toUpperCase())+'</span></div>'+
-      '<div class="expanded-score">'+(d.ourScore!=null?d.ourScore:'—')+' : '+(d.opponentScore!=null?d.opponentScore:'—')+'</div>'+
-      '<div><small>ROUNDS</small><b>'+(d.roundCount!=null?d.roundCount:'—')+'</b><span>'+esc(d.ourTeam||'ANONVC')+' vs '+esc(d.opponentTeam||d.opponent||'OPPONENT')+'</span></div>'+
+      '<div class="match-type-block"><small>MATCH TYPE</small><b>'+esc(typeLabel(m))+'</b><span>'+esc(m.participantCount||5)+'/5 PLAYERS</span></div>'+
+      '<div class="match-teams"><span class="team-home">'+esc(ourTeam)+'</span><span class="team-vs">VS</span><span class="team-away">'+esc(opponentTeam)+'</span></div>'+
+      '<div class="expanded-score-wrap"><small>SCORE</small><div class="expanded-score">'+(d.ourScore!=null?d.ourScore:'—')+' : '+(d.opponentScore!=null?d.opponentScore:'—')+'</div><button class="intel-toggle" type="button" data-collapse-match="'+esc(m.id)+'">COLLAPSE ↑</button></div>'+
+    '</div>'+
+    '<div class="match-expanded-meta">'+
+      '<span><small>MAP</small><b>'+esc(d.map||m.map||'CS2')+'</b></span>'+
+      '<span><small>DATE</small><b>'+esc(d.date||m.date||'—')+'</b></span>'+
+      '<span><small>ROUNDS</small><b>'+(d.roundCount!=null?d.roundCount:'—')+'</b></span>'+
+      '<span><small>RESULT</small><b>'+esc(resultLabel(d))+'</b></span>'+
     '</div>'+
     '<div class="match-expanded-grid">'+
-      '<section class="intel-section"><div class="intel-section-title">TEAM PERFORMANCE <i>ANONVC 5/5</i></div>'+ourRows+'</section>'+
-      '<section class="intel-section"><div class="intel-section-title">OPPONENT LINEUP <i>'+esc(d.opponentTeam||'OPPONENT')+'</i></div>'+oppRows+'</section>'+
+      '<section class="intel-section"><div class="intel-section-title">TEAM PERFORMANCE <i>'+esc(ourTeam)+' · 5/5</i></div>'+ourRows+'</section>'+
+      '<section class="intel-section"><div class="intel-section-title">OPPONENT LINEUP <i>'+esc(opponentTeam)+'</i></div>'+oppRows+'</section>'+
     '</div>'+
     '<div class="match-expanded-footer"><span>STATUS <b>'+esc(String(d.status||m.status||'').toUpperCase())+'</b></span><span>MODE <b>'+esc(typeLabel(m))+'</b></span><span>MVP <b>'+esc(d.mvp?.nickname||'—')+'</b></span><a href="'+esc(safeUrl(m.url))+'" target="_blank" rel="noopener">OPEN FACEIT ↗</a></div>'+
   '</div>';
@@ -246,11 +255,25 @@ function renderMatches(matches){
       if(e.target.closest('a,button'))return;
       var id=row.dataset.matchId,m=matchRows.find(function(x){return x.id===id;});
       if(!m||detailLoading.has(id))return;
+      if(detailCache.has(id) && collapsedDetails.has(id)){
+        collapsedDetails.delete(id);
+        renderMatches(matchRows);
+        return;
+      }
       if(!detailCache.has(id)){
         detailLoading.add(id);
         try{var d=await getJson('/api/match/'+encodeURIComponent(id)+'/summary');detailCache.set(id,Object.assign({},m,d));}catch(_){}
         detailLoading.delete(id);
       }
+      renderMatches(matchRows);
+    };
+  });
+  document.querySelectorAll('.intel-toggle').forEach(function(button){
+    button.onclick=function(e){
+      e.stopPropagation();
+      var id=button.dataset.collapseMatch;
+      if(!id)return;
+      collapsedDetails.add(id);
       renderMatches(matchRows);
     };
   });
