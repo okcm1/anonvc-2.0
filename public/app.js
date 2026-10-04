@@ -298,4 +298,4 @@ async function boot(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,15000);});
+document.addEventListener('DOMContentLoaded',function(){boot();setInterval(pollLiveFeed,5000);});
