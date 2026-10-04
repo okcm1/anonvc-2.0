@@ -80,8 +80,7 @@ let rosterStatsCacheAt=0;
 const rosterStatsCacheTtl=120000;
 
 app.use(express.static(path.join(__dirname,'public')));
-let liveMatchId=null;
-let liveMatchUpdatedAt=0;
+const liveMatchIds=new Map();
 
 app.post('/api/faceit/webhook',express.json({limit:'256kb'}),(req,res)=>{
   const body=req.body||{};
@@ -89,30 +88,51 @@ app.post('/api/faceit/webhook',express.json({limit:'256kb'}),(req,res)=>{
   const payload=body.payload||body.data||body;
   const id=payload.match_id||payload.matchId||payload.id||body.match_id||body.matchId;
   if(id){
-    liveMatchId=String(id);
-    liveMatchUpdatedAt=Date.now();
-    if(event.includes('finished')||event.includes('cancelled')||event.includes('aborted')) setTimeout(()=>{if(liveMatchId===String(id))liveMatchId=null;},300000);
+    const key=String(id);
+    liveMatchIds.set(key,Date.now());
+    if(event.includes('finished')||event.includes('cancelled')||event.includes('aborted')){
+      setTimeout(()=>liveMatchIds.delete(key),300000);
+    }
   }
   res.status(200).json({ok:true});
 });
 
 app.get('/api/live-match',async(_q,res)=>{
   try{
-    if(!liveMatchId)return res.json(null);
-    const m=await faceit('/matches/'+encodeURIComponent(liveMatchId));
     const team=await faceit('/teams/'+TEAM_ID);
     const ms=team.members||[],ids=new Set(ms.map(x=>String(x.user_id))),names=new Set(ms.map(x=>String(x.nickname||'').toLowerCase()));
-    const sides=Object.values(m.teams||{});
-    const os=ourSide(m.teams,ids,names);
-    const participants=[];
-    for(const side of sides)for(const p of side.roster||[])if(ours(p,ids,names))participants.push(p.nickname||p.game_player_name);
-    if(participants.length<1){liveMatchId=null;return res.json(null);}
-    const opp=sides.find(s=>s!==os);
-    const a=score(m,os),b=score(m,opp);
-    const status=String(m.status||'').toLowerCase();
-    res.json({id:m.match_id,url:m.faceit_url,status,won:null,opponent:opp?.nickname||'FACEIT MATCH',ourScore:a,opponentScore:b,date:m.started_at?new Date(Number(m.started_at)*1000).toLocaleDateString('ru-RU'):'—',timestamp:m.started_at||Date.now(),map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',participantCount:participants.length,participants,live:true,updatedAt:liveMatchUpdatedAt});
+    const candidates=[...liveMatchIds.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+    for(const matchId of candidates){
+      try{
+        const m=await faceit('/matches/'+encodeURIComponent(matchId));
+        const status=String(m.status||'').toLowerCase();
+        if(['finished','cancelled','aborted'].includes(status)){liveMatchIds.delete(matchId);continue;}
+        const sides=Object.values(m.teams||{});
+        const os=ourSide(m.teams,ids,names);
+        const participants=[];
+        for(const side of sides)for(const p of side.roster||side.players||[])if(ours(p,ids,names)){
+          const k=String(p.player_id||p.nickname||'').toLowerCase();
+          if(!participants.some(x=>String(x).toLowerCase()===k))participants.push(p.nickname||p.game_player_name);
+        }
+        if(!participants.length)continue;
+        const opp=sides.find(s=>s!==os);
+        const a=score(m,os),b=score(m,opp);
+        return res.json({
+          id:m.match_id,url:m.faceit_url,status,
+          opponent:opp?.nickname||'FACEIT MATCH',
+          ourScore:a,opponentScore:b,
+          date:m.started_at?new Date(Number(m.started_at)*1000).toLocaleDateString('ru-RU'):'—',
+          timestamp:m.started_at||Date.now(),
+          map:m.game_data?.map||m.game_data?.maps?.[0]||m.map||'CS2',
+          matchType:participants.length===5?'TEAM':participants.length>=2?'STACK':'SOLO',
+          participantCount:participants.length,participants,live:true,updatedAt:Date.now()
+        });
+      }catch(_){}
+    }
+    res.json(null);
   }catch(e){res.status(503).json({error:e.message})}
 });
+
 app.get('/api/status',(_q,res)=>res.json({configured:Boolean(KEY&&!KEY.includes('PASTE_YOUR')),teamId:TEAM_ID}));
 app.get('/api/team',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID))}catch(e){res.status(503).json({error:e.message})}});
 app.get('/api/team-stats',async(_q,res)=>{try{res.json(await faceit('/teams/'+TEAM_ID+'/stats/cs2'))}catch(e){res.status(503).json({error:e.message})}});
