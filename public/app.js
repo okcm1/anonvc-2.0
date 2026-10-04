@@ -165,9 +165,10 @@ function renderMatches(matches){
   var formTeam=teamRows.slice(0,10);
   var fl=$('#formList');
   if(fl) fl.innerHTML=formTeam.map(function(x){
-    var d=detailFor(x), s=d.ourScore!=null&&d.opponentScore!=null?d.ourScore+' : '+d.opponentScore:'— : —';
+    var d=detailFor(x);
     var cls=d.won===true?'win-dot':d.won===false?'loss-dot':'unk-dot';
-    return '<div class="form-line"><span class="'+cls+'"></span><b>'+s+'</b><small>'+esc(x.date||'—')+'</small></div>';
+    var label=d.won===true?'W':d.won===false?'L':'—';
+    return '<div class="form-line"><span class="'+cls+'"></span><b>'+label+'</b><small>TEAM FORM</small></div>';
   }).join('');
 
   var team=teamRows;
