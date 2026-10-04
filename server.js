@@ -89,7 +89,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
   const out=await Promise.all(members.map(async member=>{
     let stats=[];
     try{
-      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=20');
+      const data=await faceit('/players/'+member.user_id+'/games/cs2/stats?limit=30');
       stats=(data.items||[]).map(x=>x.stats||x).filter(Boolean);
     }catch(_){stats=[];}
 
@@ -102,7 +102,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
       0
     );
     stats.sort((a,b)=>finishedAt(b)-finishedAt(a));
-    const recent=stats.slice(0,20);
+    const recent=stats.slice(0,30);
 
     let wins=0,knownResults=0,kills=0,deaths=0,adrSum=0,adrCount=0,kdSum=0,kdCount=0,clutchAttempts=0,clutchWins=0;
     recent.forEach(st=>{
@@ -122,8 +122,8 @@ app.get('/api/roster-stats',async(_q,res)=>{
       if(k!==null)kills+=k;
       if(d!==null)deaths+=d;
 
-      // FACEIT's recent-performance K/D is an average of the K/D for each
-      // of the last 20 matches, not total kills divided by total deaths.
+      // Match-card values are based on the same recent-results sample FACEIT shows.
+      // Use FACEIT's own per-match K/D ratio when it is present.
       const matchKd=directKd!==null?directKd:(k!==null&&d!==null&&d>0?k/d:null);
       if(matchKd!==null){kdSum+=matchKd;kdCount++;}
 
@@ -142,7 +142,7 @@ app.get('/api/roster-stats',async(_q,res)=>{
       kd:kdCount?Math.round(kdSum/kdCount*100)/100:null,
       adr:adrCount?Math.round(adrSum/adrCount*10)/10:null,
       clutchRate:clutchAttempts?Math.round(clutchWins/clutchAttempts*1000)/10:null,
-      avgKills:recent.length?Math.round(kills/recent.length*10)/10:null,
+      avgKills:recent.length?Math.round(kills/recent.length*100)/100:null,
       clutchAttempts,
       clutchWins
     };
